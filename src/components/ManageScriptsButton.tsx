@@ -22,23 +22,28 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+import React, { useState } from "react";
 import { EuiButton } from "@elastic/eui";
-import React, { useContext } from "react";
-import { CommunicationContext } from "../contexts/CommunicationContext";
+import { MonitorManagementFlyout } from "./ManagementFlyout";
 
-type ExportScriptButtonProps = { scriptContent: string };
-
-export const ExportScriptButton: React.FC<ExportScriptButtonProps> = ({
-  scriptContent,
-}) => {
-  const { ipc } = useContext(CommunicationContext);
-  const onSave = async () => {
-    await ipc.callMain("save-file", scriptContent);
-  };
+export function ManageScriptsButton() {
+  const [isCodeFlyoutVisible, setIsManagementFlyoutVisible] = useState(false);
 
   return (
-    <EuiButton fill color="primary" iconType="exportAction" onClick={onSave}>
-      Export to file
-    </EuiButton>
+    <>
+      <EuiButton
+        fill
+        color="ghost"
+        iconType="logoUptime"
+        onClick={() => setIsManagementFlyoutVisible(true)}
+      >
+        Manage monitors
+      </EuiButton>
+      {isCodeFlyoutVisible && (
+        <MonitorManagementFlyout
+          setIsManagementFlyoutVisible={setIsManagementFlyoutVisible}
+        />
+      )}
+    </>
   );
-};
+}

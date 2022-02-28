@@ -61,9 +61,17 @@ const EXECUTABLE_PATH = join(
   defaultExecutablePath.split(installedVersion)[1]
 );
 
+let apiKey = "dEdla1FIOEJQbzh4NmN6eG5JZXM6UHFNc1JiOWdTYUt1dFVLU0ZiNjNhUQ==";
+
 module.exports = {
   JOURNEY_DIR,
   PLAYWRIGHT_BROWSERS_PATH,
   EXECUTABLE_PATH,
   RESOURCES_PATH,
+  setApiKey: newKey => {
+    if (!newKey) return null;
+    apiKey = newKey;
+    return apiKey;
+  },
+  getApiKey: () => apiKey,
 };

@@ -35,7 +35,7 @@ import { StepsContext } from "../../contexts/StepsContext";
 import { TestContext } from "../../contexts/TestContext";
 import { UrlContext } from "../../contexts/UrlContext";
 import { ControlButton } from "../ControlButton";
-import { SaveCodeButton } from "../ExportScriptButton";
+import { ManageScriptsButton } from "../ManageScriptsButton";
 import { StartOverWarningModal } from "../StartOverWarningModal";
 import { TestButton } from "../TestButton";
 import { RecordingStatusIndicator } from "./StatusIndicator";
@@ -134,7 +134,7 @@ export function HeaderControls({ setIsCodeFlyoutVisible }: IHeaderControls) {
               </EuiButton>
             </EuiFlexItem>
             <EuiFlexItem>
-              <SaveCodeButton />
+              <ManageScriptsButton />
             </EuiFlexItem>
           </EuiFlexGroup>
         </EuiFlexItem>

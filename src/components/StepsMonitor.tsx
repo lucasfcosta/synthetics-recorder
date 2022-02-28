@@ -27,6 +27,9 @@ import {
   EuiCodeBlock,
   EuiFlyout,
   EuiFlyoutBody,
+  EuiFlyoutFooter,
+  EuiFlexGroup,
+  EuiFlexItem,
   EuiFlyoutHeader,
   EuiPanel,
   EuiSpacer,
@@ -39,6 +42,7 @@ import { Steps } from "./Steps";
 import { StepsContext } from "../contexts/StepsContext";
 import type { ActionContext, JourneyType, Setter } from "../common/types";
 import { CommunicationContext } from "../contexts/CommunicationContext";
+import { ExportScriptButton } from "./ExportScriptButton";
 
 interface IRecordedCodeTabs {
   selectedTab: JourneyType;
@@ -96,6 +100,7 @@ function CodeFlyout({
 }: ICodeFlyout) {
   const { ipc } = useContext(CommunicationContext);
   const [type, setType] = useState<JourneyType>("inline");
+
   useEffect(() => {
     (async function getCode() {
       const codeFromActions = await getCodeFromActions(ipc, actions, type);
@@ -120,6 +125,13 @@ function CodeFlyout({
           {code}
         </EuiCodeBlock>
       </EuiFlyoutBody>
+      <EuiFlyoutFooter>
+        <EuiFlexGroup justifyContent="flexEnd">
+          <EuiFlexItem grow={false}>
+            <ExportScriptButton scriptContent={code} />
+          </EuiFlexItem>
+        </EuiFlexGroup>
+      </EuiFlyoutFooter>
     </EuiFlyout>
   );
 }
