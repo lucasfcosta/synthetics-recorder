@@ -11,7 +11,7 @@
     "react:start": "react-scripts start",
     "react:build": "react-scripts build",
     "electron:copy": "cp -r ./electron/. ./build",
-    "dev": "concurrently -k \"BROWSER=none npm run react:start\" \"wait-on tcp:3000 && nodemon --exec electron electron/electron.js\"",
+    "dev": "concurrently -k \"BROWSER=none npm run react:start\" \"wait-on tcp:3000 && nodemon --exec NODE_ENV=development electron electron/electron.js\"",
     "build": "npm run clean && npm run react:build && npm run electron:copy",
     "pack": "npm run build && electron-builder",
     "release": "npm run build && electron-builder -mwl --publish=always",

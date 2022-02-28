@@ -30,6 +30,8 @@ const debug = require("electron-debug");
 const logger = require("electron-log");
 const setupListeners = require("./execution");
 const buildMenu = require("./menu");
+const availableSchemes = require("../package.json").build.protocols.schemes;
+
 // For dev
 unhandled({ logger: err => logger.error(err) });
 debug({ enabled: true, showDevTools: false });
@@ -40,6 +42,16 @@ const BUILD_DIR = join(__dirname, "..", "build");
 // so we must access the process env directly
 const IS_TEST = process.env.NODE_ENV === "test";
 const TEST_PORT = process.env.TEST_PORT;
+
+let apiKey;
+
+let globalWindow;
+
+if (process.env.NODE_ENV === "development") {
+  availableSchemes.forEach(scheme => {
+    app.setAsDefaultProtocolClient(`${scheme}-dev`);
+  });
+}
 
 async function createWindow() {
   const win = new BrowserWindow({
@@ -62,6 +74,8 @@ async function createWindow() {
   } else {
     win.loadFile(join(BUILD_DIR, "index.html"));
   }
+
+  globalWindow = win;
 }
 
 function createMenu() {
@@ -84,3 +98,19 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
+
+app.on("will-finish-launching", function () {
+  app.on("open-url", function (event, url) {
+    event.preventDefault();
+    apiKey = url.slice(url.indexOf("://") + 3);
+    logEverywhere("apiKey -> " + apiKey);
+  });
+});
+
+// Log both at dev console and at running node console instance
+function logEverywhere(s) {
+  console.log(s);
+  if (globalWindow && globalWindow.webContents) {
+    globalWindow.webContents.executeJavaScript(`console.log("${s}")`);
+  }
+}
