@@ -130,7 +130,7 @@ export function HeaderControls({ setIsCodeFlyoutVisible }: IHeaderControls) {
                   setIsCodeFlyoutVisible(true);
                 }}
               >
-                View code
+                Export code
               </EuiButton>
             </EuiFlexItem>
             <EuiFlexItem>

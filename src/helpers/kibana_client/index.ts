@@ -29,7 +29,7 @@ type KibanaResponse<T> = {
 };
 
 type FleetPolicy = {
-  items: Array<{ id: string }>;
+  items: Array<{ id: string; name: string }>;
 };
 
 type PackageInstallations = {
@@ -42,20 +42,29 @@ export type SyntheticSource = {
   name: string;
   id: string;
   package: { name: string };
+  inputs: Array<{ type: string; enabled: boolean }>;
 };
 
+// TODO create instances with API KEY and URL instead of always passing it in
+
 export class KibanaClient {
-  static async getMonitors(apiKey: string) {
+  static async getAgentPolicies(baseUrl: string, apiKey: string) {
     const {
       data: { items: policies },
     }: KibanaResponse<FleetPolicy> = await axios.get(
-      "http://localhost:5601/api/fleet/agent_policies?perPage=100",
+      `${baseUrl}/api/fleet/agent_policies?perPage=100`,
       {
         headers: {
           Authorization: `ApiKey ${apiKey}`,
         },
       }
     );
+
+    return policies;
+  }
+
+  static async getMonitors(baseUrl: string, apiKey: string) {
+    const policies = await KibanaClient.getAgentPolicies(baseUrl, apiKey);
 
     const installFetches = policies.map(
       async ({ id: policyId }: { id: string }) => {
@@ -64,7 +73,7 @@ export class KibanaClient {
             item: { package_policies: packageInstallations },
           },
         }: KibanaResponse<PackageInstallations> = await axios.get(
-          `http://localhost:5601/api/fleet/agent_policies/${policyId}`,
+          `${baseUrl}/api/fleet/agent_policies/${policyId}`,
           {
             headers: {
               Authorization: `ApiKey ${apiKey}`,
@@ -72,12 +81,130 @@ export class KibanaClient {
           }
         );
 
-        return packageInstallations.filter(packageInstallation => {
-          return packageInstallation.package.name === "synthetics";
+        return packageInstallations.filter(monitorSource => {
+          const isSyntheticsPackage =
+            monitorSource.package.name === "synthetics";
+
+          const browserInput = monitorSource.inputs.find(({ type }) => {
+            return type === "synthetics/browser";
+          });
+
+          const isBrowserMonitor = browserInput && browserInput.enabled;
+
+          return isSyntheticsPackage && isBrowserMonitor;
         });
       }
     );
 
     return (await Promise.all(installFetches)).flatMap(x => x);
+  }
+
+  static async pushMonitor(
+    baseUrl: string,
+    apiKey: string,
+    monitorSettings: {
+      name: string;
+      description: string;
+      schedule: string;
+      policy: string;
+    },
+    scriptContent: string
+  ) {
+    const payload = {
+      name: monitorSettings.name,
+      description: monitorSettings.description,
+      // TODO check if we can pass namespace from Kibana
+      namespace: "default",
+      policy_id: monitorSettings.policy,
+      enabled: true,
+      output_id: "",
+      inputs: [
+        {
+          type: "synthetics/browser",
+          policy_template: "synthetics",
+          enabled: true,
+          streams: [
+            {
+              enabled: true,
+              data_stream: { type: "synthetics", dataset: "browser" },
+              vars: {
+                __ui: {
+                  value:
+                    '{"script_source":{"is_generated_script":false,"file_name":""},"is_zip_url_tls_enabled":false,"is_tls_enabled":false}',
+                  type: "yaml",
+                },
+                enabled: { value: true, type: "bool" },
+                type: { value: "browser", type: "text" },
+                name: { value: monitorSettings.name, type: "text" },
+                schedule: {
+                  value: `"${monitorSettings.schedule}"`,
+                  type: "text",
+                },
+                "service.name": { value: "", type: "text" },
+                timeout: { value: null, type: "text" },
+                tags: { value: null, type: "yaml" },
+                "source.zip_url.url": { value: "", type: "text" },
+                "source.zip_url.username": { value: "", type: "text" },
+                "source.zip_url.folder": { value: "", type: "text" },
+                "source.zip_url.password": { value: "", type: "password" },
+                "source.inline.script": {
+                  value: scriptContent,
+                  type: "yaml",
+                },
+                params: { value: "", type: "yaml" },
+                screenshots: { value: "on", type: "text" },
+                synthetics_args: { value: null, type: "text" },
+                ignore_https_errors: { value: false, type: "bool" },
+                "throttling.config": { value: "5d/3u/20l", type: "text" },
+                "filter_journeys.tags": { value: null, type: "yaml" },
+                "filter_journeys.match": { value: null, type: "text" },
+                "source.zip_url.ssl.certificate_authorities": {
+                  value: null,
+                  type: "yaml",
+                },
+                "source.zip_url.ssl.certificate": { value: null, type: "yaml" },
+                "source.zip_url.ssl.key": { value: null, type: "yaml" },
+                "source.zip_url.ssl.key_passphrase": {
+                  value: null,
+                  type: "text",
+                },
+                "source.zip_url.ssl.verification_mode": {
+                  value: null,
+                  type: "text",
+                },
+                "source.zip_url.ssl.supported_protocols": {
+                  value: null,
+                  type: "yaml",
+                },
+                "source.zip_url.proxy_url": { value: "", type: "text" },
+              },
+            },
+            {
+              enabled: true,
+              data_stream: { type: "synthetics", dataset: "browser.network" },
+            },
+            {
+              enabled: true,
+              data_stream: {
+                type: "synthetics",
+                dataset: "browser.screenshot",
+              },
+            },
+          ],
+        },
+      ],
+      package: {
+        name: "synthetics",
+        title: "Elastic Synthetics",
+        version: "0.9.2",
+      },
+    };
+
+    await axios.post(`${baseUrl}/api/fleet/package_policies`, payload, {
+      headers: {
+        "kbn-xsrf": "xxx",
+        Authorization: `ApiKey ${apiKey}`,
+      },
+    });
   }
 }

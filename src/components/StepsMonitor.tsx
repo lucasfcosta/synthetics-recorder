@@ -43,15 +43,19 @@ import { StepsContext } from "../contexts/StepsContext";
 import type { ActionContext, JourneyType, Setter } from "../common/types";
 import { CommunicationContext } from "../contexts/CommunicationContext";
 import { ExportScriptButton } from "./ExportScriptButton";
+import { PushScriptButton } from "./PushScriptButton";
+import { KibanaExportForm } from "./KibanaExportForm";
+
+type CodeTab = JourneyType | "kibana";
 
 interface IRecordedCodeTabs {
-  selectedTab: JourneyType;
-  setSelectedTab: Setter<JourneyType>;
+  selectedTab: CodeTab;
+  setSelectedTab: Setter<CodeTab>;
 }
 
 interface RecordedCodeTab {
-  id: JourneyType;
-  name: "Inline" | "Suite";
+  id: CodeTab;
+  name: "Inline" | "Suite" | "Kibana";
 }
 
 function RecordedCodeTabs({ selectedTab, setSelectedTab }: IRecordedCodeTabs) {
@@ -63,6 +67,10 @@ function RecordedCodeTabs({ selectedTab, setSelectedTab }: IRecordedCodeTabs) {
     {
       id: "suite",
       name: "Suite",
+    },
+    {
+      id: "kibana",
+      name: "Kibana",
     },
   ];
 
@@ -99,15 +107,42 @@ function CodeFlyout({
   setIsFlyoutVisible,
 }: ICodeFlyout) {
   const { ipc } = useContext(CommunicationContext);
-  const [type, setType] = useState<JourneyType>("inline");
+  const [type, setType] = useState<CodeTab>("inline");
+  const [formState, setFormState] = useState<{
+    name: string;
+    description: string;
+    schedule: string;
+    policy: string;
+  }>({
+    name: "Test",
+    description: "Example",
+    schedule: "@every 3m",
+    policy: "",
+  });
 
   useEffect(() => {
     (async function getCode() {
-      const codeFromActions = await getCodeFromActions(ipc, actions, type);
+      const codeType: JourneyType = type === "suite" ? "suite" : "inline";
+      const codeFromActions = await getCodeFromActions(ipc, actions, codeType);
       setCode(codeFromActions);
     })();
   }, [actions, setCode, type, ipc]);
 
+  const exportButton =
+    type === "kibana" ? (
+      <PushScriptButton monitorSettings={formState} scriptContent={code} />
+    ) : (
+      <ExportScriptButton scriptContent={code} />
+    );
+
+  const flyoutBody =
+    type === "kibana" ? (
+      <KibanaExportForm scriptContent={code} onFormChange={setFormState} />
+    ) : (
+      <EuiCodeBlock language="js" paddingSize="m" isCopyable>
+        {code}
+      </EuiCodeBlock>
+    );
   return (
     <EuiFlyout
       ownFocus
@@ -121,15 +156,11 @@ function CodeFlyout({
       </EuiFlyoutHeader>
       <EuiFlyoutBody>
         <RecordedCodeTabs selectedTab={type} setSelectedTab={setType} />
-        <EuiCodeBlock language="js" paddingSize="m" isCopyable>
-          {code}
-        </EuiCodeBlock>
+        {flyoutBody}
       </EuiFlyoutBody>
       <EuiFlyoutFooter>
         <EuiFlexGroup justifyContent="flexEnd">
-          <EuiFlexItem grow={false}>
-            <ExportScriptButton scriptContent={code} />
-          </EuiFlexItem>
+          <EuiFlexItem grow={false}>{exportButton}</EuiFlexItem>
         </EuiFlexGroup>
       </EuiFlyoutFooter>
     </EuiFlyout>

@@ -41,6 +41,7 @@ const {
   PLAYWRIGHT_BROWSERS_PATH,
   EXECUTABLE_PATH,
   getApiKey,
+  getKibanaUrl,
 } = require("./config");
 
 const IS_TEST_ENV = process.env.NODE_ENV === "test";
@@ -274,6 +275,7 @@ function setupListeners() {
   ipc.answerRenderer("set-mode", onSetMode);
   ipc.answerRenderer("link-to-external", onLinkExternal);
   ipc.answerRenderer("get-kibana-api-key", getApiKey);
+  ipc.answerRenderer("get-kibana-url", getKibanaUrl);
 }
 
 module.exports = setupListeners;

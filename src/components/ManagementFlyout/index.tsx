@@ -32,6 +32,9 @@ import {
   EuiFlexItem,
   EuiFlyoutHeader,
   EuiTitle,
+  EuiBasicTable,
+  Criteria,
+  EuiTableSortingType,
 } from "@elastic/eui";
 import { CommunicationContext } from "../../contexts/CommunicationContext";
 import { KibanaClient, SyntheticSource } from "../../helpers/kibana_client";
@@ -40,9 +43,41 @@ type MonitorManagementFlyoutProps = {
   setIsManagementFlyoutVisible: (isVisible: boolean) => void;
 };
 
+const monitorColumns = [
+  {
+    field: "name",
+    name: "Name",
+    sortable: true,
+  },
+  {
+    field: "id",
+    name: "ID",
+  },
+  // {
+  //   field: 'status',
+  //   name: 'status',
+  //   render: (value) => null,
+  // },
+  {
+    name: "Actions",
+    field: "",
+    actions: [
+      {
+        name: "Delete",
+        description: "Delete this monitor",
+        icon: "trash",
+        type: "icon",
+        color: "danger",
+        onClick: () => 1,
+      },
+    ],
+  },
+];
+
 export const MonitorManagementFlyout: React.FC<
   MonitorManagementFlyoutProps
 > = ({ setIsManagementFlyoutVisible }) => {
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const { ipc } = useContext(CommunicationContext);
   const [syntheticSources, setSyntheticSources] = useState<
     Array<SyntheticSource>
@@ -51,9 +86,25 @@ export const MonitorManagementFlyout: React.FC<
   useEffect(() => {
     (async () => {
       const apiKey: string = await ipc.callMain("get-kibana-api-key");
-      setSyntheticSources(await KibanaClient.getMonitors(apiKey));
+      const kibanaUrl: string = await ipc.callMain("get-kibana-url");
+      setSyntheticSources(await KibanaClient.getMonitors(kibanaUrl, apiKey));
     })();
   }, [setSyntheticSources, ipc]);
+
+  const sorting: EuiTableSortingType<SyntheticSource> = {
+    sort: {
+      field: "name",
+      direction: sortDirection,
+    },
+    enableAllColumns: false,
+    readOnly: false,
+  };
+
+  const onTableChange = ({ sort }: Criteria<SyntheticSource>) => {
+    if (!sort || !sort.direction) return;
+    const { direction: sortDirection } = sort;
+    setSortDirection(sortDirection);
+  };
 
   return (
     <EuiFlyout
@@ -67,17 +118,15 @@ export const MonitorManagementFlyout: React.FC<
         </EuiTitle>
       </EuiFlyoutHeader>
       <EuiFlyoutBody>
-        {syntheticSources.map(({ id, name }) => {
-          return (
-            <div key={id}>
-              <p>
-                <strong>{name}</strong>
-              </p>
-              <p>{id}</p>
-            </div>
-          );
-        })}
-        <p>Test</p>
+        <EuiBasicTable
+          tableCaption="Demo for responsive EuiBasicTable with mobile options"
+          items={syntheticSources}
+          itemId="id"
+          columns={monitorColumns}
+          sorting={sorting}
+          hasActions={true}
+          onChange={onTableChange}
+        />
       </EuiFlyoutBody>
       <EuiFlyoutFooter>
         <EuiFlexGroup justifyContent="flexEnd">

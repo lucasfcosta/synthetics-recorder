@@ -61,7 +61,8 @@ const EXECUTABLE_PATH = join(
   defaultExecutablePath.split(installedVersion)[1]
 );
 
-let apiKey = "dEdla1FIOEJQbzh4NmN6eG5JZXM6UHFNc1JiOWdTYUt1dFVLU0ZiNjNhUQ==";
+let apiKey;
+let kibanaUrl;
 
 module.exports = {
   JOURNEY_DIR,
@@ -74,4 +75,10 @@ module.exports = {
     return apiKey;
   },
   getApiKey: () => apiKey,
+  setKibanaUrl: newKibanaUrl => {
+    if (!newKibanaUrl) return null;
+    kibanaUrl = newKibanaUrl;
+    return kibanaUrl;
+  },
+  getKibanaUrl: () => kibanaUrl,
 };
