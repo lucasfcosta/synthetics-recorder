@@ -33,8 +33,8 @@ import {
   EuiFlexGroup,
   EuiFlexItem,
 } from "@elastic/eui";
-import { KibanaClient } from "../helpers/kibana_client";
-import { CommunicationContext } from "../contexts/CommunicationContext";
+import { KibanaClient } from "../../helpers/kibana_client";
+import { CommunicationContext } from "../../contexts/CommunicationContext";
 
 type TimeUnits = "s" | "m" | "h";
 
@@ -91,8 +91,7 @@ export const ScheduleField = ({ onChange, onBlur }: ScheduleFieldProps) => {
   );
 };
 
-type KibanaExportFormProps = {
-  scriptContent: string;
+type FleetExportFormProps = {
   // TODO dedupe this type
   onFormChange: (values: {
     name: string;
@@ -103,8 +102,7 @@ type KibanaExportFormProps = {
 };
 
 // TODO better handling of default values here
-export const KibanaExportForm: React.FC<KibanaExportFormProps> = ({
-  scriptContent,
+export const FleetExportForm: React.FC<FleetExportFormProps> = ({
   onFormChange,
 }) => {
   const { ipc } = useContext(CommunicationContext);

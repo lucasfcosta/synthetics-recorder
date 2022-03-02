@@ -226,4 +226,64 @@ export class KibanaClient {
       },
     });
   }
+
+  static async pushMonitorToService(
+    baseUrl: string,
+    apiKey: string,
+    monitorSettings: {
+      name: string;
+      description: string;
+      schedule: string;
+      policy: string;
+    },
+    scriptContent: string
+  ) {
+    const payload = {
+      type: "browser",
+      locations: [
+        {
+          id: "localhost",
+          label: "Local Synthetics Service",
+          geo: { lat: 0, lon: 0 },
+          url: "https://localhost:10001",
+        },
+      ],
+      enabled: true,
+      schedule: { number: "3", unit: "m" },
+      "service.name": "",
+      tags: [],
+      timeout: null,
+      name: monitorSettings.name,
+      namespace: "default",
+      __ui: {
+        script_source: { is_generated_script: false, file_name: "" },
+        is_zip_url_tls_enabled: false,
+        is_tls_enabled: false,
+      },
+      "source.zip_url.url": "",
+      "source.zip_url.username": "",
+      "source.zip_url.password": "",
+      "source.zip_url.folder": "",
+      "source.zip_url.proxy_url": "",
+      "source.inline.script": scriptContent,
+      params: "",
+      screenshots: "on",
+      synthetics_args: [],
+      "filter_journeys.match": "",
+      "filter_journeys.tags": [],
+      ignore_https_errors: false,
+      "throttling.is_enabled": true,
+      "throttling.download_speed": "5",
+      "throttling.upload_speed": "3",
+      "throttling.latency": "20",
+      "throttling.config": "5d/3u/20l",
+    };
+
+    await axios.post(`${baseUrl}/internal/uptime/service/monitors`, payload, {
+      headers: {
+        "kbn-xsrf": "xxx",
+        Authorization: `ApiKey ${apiKey}`,
+      },
+    });
+  }
 }

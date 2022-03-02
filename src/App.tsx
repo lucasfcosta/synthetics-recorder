@@ -28,7 +28,7 @@ import { EuiFlexGroup, EuiFlexItem, EuiPageBody } from "@elastic/eui";
 import "./App.css";
 import "@elastic/eui/dist/eui_legacy_light.css";
 import { Header } from "./components/Header";
-import { StepsMonitor } from "./components/StepsMonitor";
+import { ExportFlyout } from "./components/ExportFlyout";
 import { TestResult } from "./components/TestResult";
 import { AssertionDrawer } from "./components/AssertionDrawer";
 import { Title } from "./components/Header/Title";
@@ -144,7 +144,7 @@ export default function App() {
                         <EuiFlexItem
                           style={{ minWidth: MAIN_CONTROLS_MIN_WIDTH }}
                         >
-                          <StepsMonitor
+                          <ExportFlyout
                             isFlyoutVisible={isCodeFlyoutVisible}
                             setIsFlyoutVisible={setIsCodeFlyoutVisible}
                           />
