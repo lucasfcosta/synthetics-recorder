@@ -36,6 +36,8 @@ import {
   EuiTab,
   EuiTabs,
   EuiTitle,
+  EuiLoadingSpinner,
+  EuiGlobalToastList,
 } from "@elastic/eui";
 import { getCodeFromActions } from "../common/shared";
 import { Steps } from "./Steps";
@@ -93,12 +95,34 @@ function RecordedCodeTabs({ selectedTab, setSelectedTab }: IRecordedCodeTabs) {
   );
 }
 
+const PushLoadingScreen = () => {
+  return (
+    <EuiFlexGroup
+      justifyContent="center"
+      alignItems="center"
+      direction="column"
+      style={{ marginTop: 120, width: "100%" }}
+    >
+      <EuiLoadingSpinner size="l" />
+      <EuiSpacer />
+      <p>Pushing monitor...</p>
+    </EuiFlexGroup>
+  );
+};
+
 interface ICodeFlyout {
   actions: ActionContext[][];
   code: string;
   setCode: Setter<string>;
   setIsFlyoutVisible: Setter<boolean>;
 }
+
+type Toast = {
+  id: string;
+  title: React.ReactNode;
+  color: "success";
+  text?: React.ReactChild;
+};
 
 function CodeFlyout({
   actions,
@@ -107,7 +131,9 @@ function CodeFlyout({
   setIsFlyoutVisible,
 }: ICodeFlyout) {
   const { ipc } = useContext(CommunicationContext);
+  const [toasts, setToasts] = useState<Array<Toast>>([]);
   const [type, setType] = useState<CodeTab>("inline");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [formState, setFormState] = useState<{
     name: string;
     description: string;
@@ -128,13 +154,33 @@ function CodeFlyout({
     })();
   }, [actions, setCode, type, ipc]);
 
+  const addPushSuccessToast = (monitorName: string) => {
+    const newToast = {
+      id: monitorName,
+      color: "success" as const,
+      title: `Monitor ${monitorName} pushed successfully`,
+      text: "You can now see this new monitor in Kibana's Uptime app.",
+    };
+    setToasts(toasts.concat(newToast));
+  };
+
+  const removeToast = (deletedToast: { id: string }) => {
+    setToasts(toasts.filter(t => t.id !== deletedToast.id));
+  };
+
   const exportButton =
     type === "kibana" ? (
-      <PushScriptButton monitorSettings={formState} scriptContent={code} />
+      <PushScriptButton
+        monitorSettings={formState}
+        scriptContent={code}
+        onPushStateChange={(isLoading, monitorName) => {
+          setIsSubmitting(isLoading);
+          if (!isLoading) addPushSuccessToast(monitorName);
+        }}
+      />
     ) : (
       <ExportScriptButton scriptContent={code} />
     );
-
   const flyoutBody =
     type === "kibana" ? (
       <KibanaExportForm scriptContent={code} onFormChange={setFormState} />
@@ -143,6 +189,7 @@ function CodeFlyout({
         {code}
       </EuiCodeBlock>
     );
+
   return (
     <EuiFlyout
       ownFocus
@@ -156,13 +203,19 @@ function CodeFlyout({
       </EuiFlyoutHeader>
       <EuiFlyoutBody>
         <RecordedCodeTabs selectedTab={type} setSelectedTab={setType} />
-        {flyoutBody}
+        {!isSubmitting ? flyoutBody : <PushLoadingScreen />}
       </EuiFlyoutBody>
       <EuiFlyoutFooter>
         <EuiFlexGroup justifyContent="flexEnd">
           <EuiFlexItem grow={false}>{exportButton}</EuiFlexItem>
         </EuiFlexGroup>
       </EuiFlyoutFooter>
+
+      <EuiGlobalToastList
+        toasts={toasts}
+        dismissToast={removeToast}
+        toastLifeTimeMs={6000}
+      />
     </EuiFlyout>
   );
 }

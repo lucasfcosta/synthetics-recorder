@@ -26,7 +26,9 @@ import { EuiButton } from "@elastic/eui";
 import React, { useContext } from "react";
 import { CommunicationContext } from "../contexts/CommunicationContext";
 
-type ExportScriptButtonProps = { scriptContent: string };
+type ExportScriptButtonProps = {
+  scriptContent: string;
+};
 
 export const ExportScriptButton: React.FC<ExportScriptButtonProps> = ({
   scriptContent,

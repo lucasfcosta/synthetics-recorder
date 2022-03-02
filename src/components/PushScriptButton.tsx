@@ -36,23 +36,27 @@ type PushScriptButtonProps = {
     policy: string;
   };
   scriptContent: string;
+  onPushStateChange: (isLoading: boolean, monitorName: string) => void;
 };
 
 export const PushScriptButton: React.FC<PushScriptButtonProps> = ({
   monitorSettings,
   scriptContent,
+  onPushStateChange,
 }) => {
   const { ipc } = useContext(CommunicationContext);
 
   const onClick = async () => {
     const kibanaUrl: string = await ipc.callMain("get-kibana-url");
     const apiKey: string = await ipc.callMain("get-kibana-api-key");
+    onPushStateChange(true, monitorSettings.name);
     await KibanaClient.pushMonitor(
       kibanaUrl,
       apiKey,
       monitorSettings,
       scriptContent
     );
+    onPushStateChange(false, monitorSettings.name);
   };
 
   return (

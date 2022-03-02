@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useCallback } from "react";
 import {
   EuiForm,
   EuiFormRow,
@@ -108,24 +108,9 @@ export const KibanaExportForm: React.FC<KibanaExportFormProps> = ({
   onFormChange,
 }) => {
   const { ipc } = useContext(CommunicationContext);
-  const [policyOptions, setPolicyOptions] =
-    useState<Array<{ text: string; value: string }>>();
-
-  useEffect(() => {
-    const fetchPolicyOptions = async () => {
-      const kibanaUrl: string = await ipc.callMain("get-kibana-url");
-      const apiKey: string = await ipc.callMain("get-kibana-api-key");
-      const policies = await KibanaClient.getAgentPolicies(kibanaUrl, apiKey);
-      const policyOptions = policies.map(({ name: text, id: value }) => ({
-        text,
-        value,
-      }));
-      setPolicyOptions(policyOptions);
-    };
-
-    fetchPolicyOptions();
-  }, [setPolicyOptions, ipc]);
-
+  const [policyOptions, setPolicyOptions] = useState<
+    Array<{ text: string; value: string }>
+  >([]);
   const [formState, setFormState] = useState<{
     name: string;
     description: string;
@@ -138,45 +123,69 @@ export const KibanaExportForm: React.FC<KibanaExportFormProps> = ({
     policy: "",
   });
 
-  const formChangeHandler =
+  const formChangeHandler = useCallback(
     (fieldName: string) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | string) => {
-      const value = typeof e === "string" ? e : e.target.value;
-      if (!value) return;
-      const newFormValues = { ...formState, [fieldName]: value };
-      setFormState(newFormValues);
-      onFormChange(newFormValues);
+      (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | string) => {
+        const value = typeof e === "string" ? e : e.target.value;
+        if (!value) return;
+        const newFormValues = { ...formState, [fieldName]: value };
+        setFormState(newFormValues);
+        onFormChange(newFormValues);
+      },
+    [formState, onFormChange]
+  );
+
+  useEffect(() => {
+    const fetchPolicyOptions = async () => {
+      if (policyOptions.length > 0) return;
+
+      const kibanaUrl: string = await ipc.callMain("get-kibana-url");
+      const apiKey: string = await ipc.callMain("get-kibana-api-key");
+      const policies = await KibanaClient.getAgentPolicies(kibanaUrl, apiKey);
+      const newPolicyOptions = policies.map(({ name: text, id: value }) => ({
+        text,
+        value,
+      }));
+
+      setPolicyOptions(newPolicyOptions);
+      const initialPolicyOption = newPolicyOptions[0];
+      formChangeHandler("policy")(initialPolicyOption.value);
     };
 
+    fetchPolicyOptions();
+  }, [policyOptions.length, setPolicyOptions, ipc, formChangeHandler]);
+
   return (
-    <EuiForm>
-      <EuiSpacer />
+    <>
+      <EuiForm>
+        <EuiSpacer />
 
-      <EuiFormRow label="Monitor name">
-        <EuiFieldText name="name" onChange={formChangeHandler("name")} />
-      </EuiFormRow>
+        <EuiFormRow label="Monitor name">
+          <EuiFieldText name="name" onChange={formChangeHandler("name")} />
+        </EuiFormRow>
 
-      <EuiFormRow label="Description">
-        <EuiFieldText
-          name="description"
-          onChange={formChangeHandler("description")}
-        />
-      </EuiFormRow>
+        <EuiFormRow label="Description">
+          <EuiFieldText
+            name="description"
+            onChange={formChangeHandler("description")}
+          />
+        </EuiFormRow>
 
-      <EuiFormRow label="Schedule">
-        <ScheduleField
-          onChange={formChangeHandler("schedule")}
-          onBlur={formChangeHandler("schedule")}
-        />
-      </EuiFormRow>
+        <EuiFormRow label="Schedule">
+          <ScheduleField
+            onChange={formChangeHandler("schedule")}
+            onBlur={formChangeHandler("schedule")}
+          />
+        </EuiFormRow>
 
-      <EuiFormRow label="Policy">
-        <EuiSelect
-          options={policyOptions}
-          onChange={formChangeHandler("policy")}
-          onBlur={formChangeHandler("policy")}
-        />
-      </EuiFormRow>
-    </EuiForm>
+        <EuiFormRow label="Policy">
+          <EuiSelect
+            options={policyOptions}
+            onChange={formChangeHandler("policy")}
+            onBlur={formChangeHandler("policy")}
+          />
+        </EuiFormRow>
+      </EuiForm>
+    </>
   );
 };
