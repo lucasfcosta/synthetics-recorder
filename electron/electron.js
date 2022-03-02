@@ -31,7 +31,7 @@ const logger = require("electron-log");
 const setupListeners = require("./execution");
 const buildMenu = require("./menu");
 const availableSchemes = require("../package.json").build.protocols.schemes;
-const { getApiKey, setApiKey, setKibanaUrl } = require("./config");
+const { setApiKey, setKibanaUrl } = require("./config");
 
 // For dev
 unhandled({ logger: err => logger.error(err) });
@@ -43,8 +43,6 @@ const BUILD_DIR = join(__dirname, "..", "build");
 // so we must access the process env directly
 const IS_TEST = process.env.NODE_ENV === "test";
 const TEST_PORT = process.env.TEST_PORT;
-
-let globalWindow;
 
 if (process.env.NODE_ENV === "development") {
   availableSchemes.forEach(scheme => {
@@ -74,9 +72,6 @@ async function createWindow() {
   } else {
     win.loadFile(join(BUILD_DIR, "index.html"));
   }
-
-  setKibanaUrl("http://localhost:5602/gin");
-  globalWindow = win;
 }
 
 function createMenu() {
@@ -103,15 +98,16 @@ app.on("window-all-closed", () => {
 app.on("will-finish-launching", function () {
   app.on("open-url", function (event, url) {
     event.preventDefault();
-    setApiKey(url.slice(url.indexOf("://") + 3));
-    // TODO figure out how to obtain Kibana's URL instead of hard-coding
-    logEverywhere(getApiKey());
+    const queryString = url.slice(url.indexOf("://") + 3);
+    const searchParams = new URLSearchParams(queryString);
+    setApiKey(searchParams.get("apiKey"));
+    setKibanaUrl(searchParams.get("kibanaUrl"));
   });
 });
 
-function logEverywhere(s) {
-  console.log(s);
-  if (globalWindow && globalWindow.webContents) {
-    globalWindow.webContents.executeJavaScript(`console.log("${s}")`);
-  }
-}
+// function logEverywhere(s) {
+//   console.log(s);
+//   if (globalWindow && globalWindow.webContents) {
+//     globalWindow.webContents.executeJavaScript(`console.log("${s}")`);
+//   }
+// }
