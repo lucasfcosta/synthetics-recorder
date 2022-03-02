@@ -43,37 +43,6 @@ type MonitorManagementFlyoutProps = {
   setIsManagementFlyoutVisible: (isVisible: boolean) => void;
 };
 
-const monitorColumns = [
-  {
-    field: "name",
-    name: "Name",
-    sortable: true,
-  },
-  {
-    field: "id",
-    name: "ID",
-  },
-  // {
-  //   field: 'status',
-  //   name: 'status',
-  //   render: (value) => null,
-  // },
-  {
-    name: "Actions",
-    field: "",
-    actions: [
-      {
-        name: "Delete",
-        description: "Delete this monitor",
-        icon: "trash",
-        type: "icon",
-        color: "danger",
-        onClick: () => 1,
-      },
-    ],
-  },
-];
-
 export const MonitorManagementFlyout: React.FC<
   MonitorManagementFlyoutProps
 > = ({ setIsManagementFlyoutVisible }) => {
@@ -99,6 +68,40 @@ export const MonitorManagementFlyout: React.FC<
     enableAllColumns: false,
     readOnly: false,
   };
+
+  const monitorColumns = [
+    {
+      field: "name",
+      name: "Name",
+      sortable: true,
+    },
+    {
+      field: "id",
+      name: "ID",
+    },
+    {
+      name: "Actions",
+      field: "",
+      actions: [
+        {
+          name: "Delete",
+          description: "Delete this monitor",
+          icon: "trash",
+          type: "icon",
+          color: "danger",
+          onClick: async (item: SyntheticSource) => {
+            const apiKey: string = await ipc.callMain("get-kibana-api-key");
+            const kibanaUrl: string = await ipc.callMain("get-kibana-url");
+            // TODO loading state when deleting
+            setSyntheticSources(
+              syntheticSources.filter(source => source.id !== item.id)
+            );
+            await KibanaClient.deleteMonitor(kibanaUrl, apiKey, item.id);
+          },
+        },
+      ],
+    },
+  ];
 
   const onTableChange = ({ sort }: Criteria<SyntheticSource>) => {
     if (!sort || !sort.direction) return;

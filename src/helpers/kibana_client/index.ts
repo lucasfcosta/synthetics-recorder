@@ -99,6 +99,25 @@ export class KibanaClient {
     return (await Promise.all(installFetches)).flatMap(x => x);
   }
 
+  static async deleteMonitor(
+    baseUrl: string,
+    apiKey: string,
+    policyId: string
+  ) {
+    await axios.post(
+      `${baseUrl}/api/fleet/package_policies/delete`,
+      {
+        packagePolicyIds: [policyId],
+      },
+      {
+        headers: {
+          "kbn-xsrf": "xxx",
+          Authorization: `ApiKey ${apiKey}`,
+        },
+      }
+    );
+  }
+
   static async pushMonitor(
     baseUrl: string,
     apiKey: string,
