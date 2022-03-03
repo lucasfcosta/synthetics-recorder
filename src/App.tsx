@@ -44,7 +44,6 @@ import { useAssertionDrawer } from "./hooks/useAssertionDrawer";
 import { useSyntheticsTest } from "./hooks/useSyntheticsTest";
 import { generateIR, generateMergedIR } from "./helpers/generator";
 import { UrlContext } from "./contexts/UrlContext";
-import { ScreenShotCanvas } from "./components/ScreenShotCanvas";
 
 const MAIN_CONTROLS_MIN_WIDTH = 600;
 
@@ -157,7 +156,6 @@ export default function App() {
                     </EuiFlexItem>
                   </EuiFlexGroup>
                   <AssertionDrawer />
-                  <ScreenShotCanvas />
                 </EuiPageBody>
               </UrlContext.Provider>
             </TestContext.Provider>

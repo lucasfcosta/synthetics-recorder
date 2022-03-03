@@ -36,9 +36,12 @@ import {
   Criteria,
   EuiTableSortingType,
   EuiBadge,
+  EuiButtonIcon,
+  EuiPopover,
 } from "@elastic/eui";
 import { CommunicationContext } from "../../contexts/CommunicationContext";
 import { KibanaClient } from "../../helpers/kibana_client";
+import { StatusPopover } from "./StatusPopover";
 
 type MonitorManagementFlyoutProps = {
   setIsManagementFlyoutVisible: (isVisible: boolean) => void;
@@ -56,6 +59,7 @@ export const MonitorManagementFlyout: React.FC<
   MonitorManagementFlyoutProps
 > = ({ setIsManagementFlyoutVisible }) => {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [statusPopoverId, setStatusPopoverId] = useState<string | undefined>();
   const { ipc } = useContext(CommunicationContext);
   const [syntheticSources, setSyntheticSources] = useState<
     Array<SyntheticSourceRow>
@@ -151,6 +155,28 @@ export const MonitorManagementFlyout: React.FC<
       },
     },
     {
+      field: "id",
+      name: "Detail",
+      render: (id: string, item: SyntheticSourceRow) => {
+        return (
+          <EuiPopover
+            button={
+              <EuiButtonIcon
+                aria-label="Click this button to view screenshot and additional detail for this monitor"
+                onClick={() => setStatusPopoverId(id)}
+                iconType="indexRuntime"
+              />
+            }
+            closePopover={() => setStatusPopoverId(undefined)}
+            anchorPosition="leftUp"
+            isOpen={!!statusPopoverId && statusPopoverId === id}
+          >
+            <StatusPopover monitorId={id} monitorName={item.name} />
+          </EuiPopover>
+        );
+      },
+    },
+    {
       name: "Actions",
       field: "",
       actions: [
@@ -159,7 +185,7 @@ export const MonitorManagementFlyout: React.FC<
           description: "Edit this monitor",
           icon: "pencil",
           type: "icon",
-          color: "text",
+          color: "primary",
           onClick: async (item: SyntheticSourceRow) =>
             ipc.callMain(
               "link-to-external",
@@ -208,6 +234,7 @@ export const MonitorManagementFlyout: React.FC<
       ownFocus
       onClose={() => setIsManagementFlyoutVisible(false)}
       aria-labelledby="flyoutTitle"
+      size="l"
     >
       <EuiFlyoutHeader hasBorder>
         <EuiTitle size="s">
