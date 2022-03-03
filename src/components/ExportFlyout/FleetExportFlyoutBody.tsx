@@ -30,11 +30,12 @@ import {
   EuiFlexItem,
 } from "@elastic/eui";
 import { CommunicationContext } from "../../contexts/CommunicationContext";
-import type { ActionContext } from "../../common/types";
+import type { ActionContext, FleetMonitorSettings } from "../../common/types";
 import { getCodeFromActions } from "../../common/shared";
 import { FleetExportForm } from "./FleetExportForm";
 import { PushScriptButton } from "../PushScriptButton";
 import { ExportLoadingPanel } from "./ExportLoadingPanel";
+import { KibanaClient } from "../../helpers/kibana_client";
 
 type FleetExportFlyoutBodyProps = {
   tabs: JSX.Element;
@@ -50,12 +51,7 @@ export const FleetExportFlyoutBody: React.FC<FleetExportFlyoutBodyProps> = ({
   const { ipc } = useContext(CommunicationContext);
   const [code, setCode] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [formState, setFormState] = useState<{
-    name: string;
-    description: string;
-    schedule: string;
-    policy: string;
-  }>({
+  const [formState, setFormState] = useState<FleetMonitorSettings>({
     name: "Test",
     description: "Example",
     schedule: "@every 3m",
@@ -75,6 +71,15 @@ export const FleetExportFlyoutBody: React.FC<FleetExportFlyoutBodyProps> = ({
     <FleetExportForm onFormChange={setFormState} />
   );
 
+  const onClick = async () => {
+    const kibanaUrl: string = await ipc.callMain("get-kibana-url");
+    const apiKey: string = await ipc.callMain("get-kibana-api-key");
+    setIsLoading(true);
+    await KibanaClient.pushMonitor(kibanaUrl, apiKey, formState, code);
+    setIsLoading(false);
+    onSuccess(formState.name);
+  };
+
   return (
     <>
       <EuiFlyoutBody>
@@ -85,14 +90,7 @@ export const FleetExportFlyoutBody: React.FC<FleetExportFlyoutBodyProps> = ({
       <EuiFlyoutFooter>
         <EuiFlexGroup justifyContent="flexEnd">
           <EuiFlexItem grow={false}>
-            <PushScriptButton
-              monitorSettings={formState}
-              scriptContent={code}
-              onPushStateChange={(isLoading, monitorName) => {
-                setIsLoading(isLoading);
-                if (!isLoading) onSuccess(monitorName);
-              }}
-            />
+            <PushScriptButton onClick={onClick} />
           </EuiFlexItem>
         </EuiFlexGroup>
       </EuiFlyoutFooter>

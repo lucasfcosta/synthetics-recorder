@@ -24,16 +24,18 @@ THE SOFTWARE.
 
 import React, { useState, useEffect, useContext } from "react";
 import {
-  EuiCodeBlock,
   EuiFlyoutBody,
   EuiFlyoutFooter,
   EuiFlexGroup,
   EuiFlexItem,
 } from "@elastic/eui";
-import { ExportScriptButton } from "../ExportScriptButton";
 import { CommunicationContext } from "../../contexts/CommunicationContext";
-import type { ActionContext } from "../../common/types";
+import type { ActionContext, ServiceMonitorSettings } from "../../common/types";
 import { getCodeFromActions } from "../../common/shared";
+import { ServiceExportForm } from "./ServiceExportForm";
+import { PushScriptButton } from "../PushScriptButton";
+import { ExportLoadingPanel } from "./ExportLoadingPanel";
+import { KibanaClient } from "../../helpers/kibana_client";
 
 type ServiceExportFlyoutBodyProps = {
   tabs: JSX.Element;
@@ -43,9 +45,14 @@ type ServiceExportFlyoutBodyProps = {
 
 export const ServiceExportFlyoutBody: React.FC<
   ServiceExportFlyoutBodyProps
-> = ({ tabs, actions }) => {
+> = ({ tabs, actions, onSuccess }) => {
   const { ipc } = useContext(CommunicationContext);
   const [code, setCode] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [formState, setFormState] = useState<ServiceMonitorSettings>({
+    name: "Test",
+    schedule: "@every 3m",
+  });
 
   useEffect(() => {
     (async function getCode() {
@@ -54,19 +61,32 @@ export const ServiceExportFlyoutBody: React.FC<
     })();
   }, [actions, setCode, ipc]);
 
+  const content = isLoading ? (
+    <ExportLoadingPanel />
+  ) : (
+    <ServiceExportForm onFormChange={setFormState} />
+  );
+
+  const onClick = async () => {
+    const kibanaUrl: string = await ipc.callMain("get-kibana-url");
+    const apiKey: string = await ipc.callMain("get-kibana-api-key");
+    setIsLoading(true);
+    await KibanaClient.pushMonitorToService(kibanaUrl, apiKey, formState, code);
+    setIsLoading(false);
+    onSuccess(formState.name);
+  };
+
   return (
     <>
       <EuiFlyoutBody>
         {tabs}
-        <EuiCodeBlock language="js" paddingSize="m" isCopyable>
-          {code}
-        </EuiCodeBlock>
+        {content}
       </EuiFlyoutBody>
 
       <EuiFlyoutFooter>
         <EuiFlexGroup justifyContent="flexEnd">
           <EuiFlexItem grow={false}>
-            <ExportScriptButton scriptContent={code} />
+            <PushScriptButton onClick={onClick} />
           </EuiFlexItem>
         </EuiFlexGroup>
       </EuiFlyoutFooter>

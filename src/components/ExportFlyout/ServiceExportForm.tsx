@@ -33,15 +33,15 @@ import {
   EuiFlexGroup,
   EuiFlexItem,
 } from "@elastic/eui";
-import { KibanaClient } from "../../helpers/kibana_client";
-import { CommunicationContext } from "../../contexts/CommunicationContext";
-import type { FleetMonitorSettings } from "../../common/types";
+import type { ServiceMonitorSettings } from "../../common/types";
+// import { KibanaClient } from "../../helpers/kibana_client";
+// import { CommunicationContext } from "../../contexts/CommunicationContext";
 
 type TimeUnits = "s" | "m" | "h";
 
 interface ScheduleFieldProps {
-  onChange: (schedule: string) => void;
-  onBlur: (schedule: string) => void;
+  onChange: (number: string, unit: string) => void;
+  onBlur: (number: string, unit: string) => void;
 }
 
 export const ScheduleField = ({ onChange, onBlur }: ScheduleFieldProps) => {
@@ -54,19 +54,17 @@ export const ScheduleField = ({ onChange, onBlur }: ScheduleFieldProps) => {
     { text: "Hours", value: "h" },
   ];
 
-  const toScheduleString = (n: number, unit: TimeUnits) => `@every ${n}${unit}`;
-
   const onNumberUpdate = (event: React.ChangeEvent<HTMLInputElement>) => {
     const updatedNumber =
       event.target.value === null ? 0 : parseInt(event.target.value);
     setN(updatedNumber);
-    onChange(toScheduleString(updatedNumber, unit));
+    onChange(updatedNumber.toString(), unit);
   };
 
   const onUnitUpdate = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const updatedUnit = event.target.value as TimeUnits;
     setUnit(updatedUnit);
-    onChange(toScheduleString(n, updatedUnit));
+    onChange(n.toString(), updatedUnit);
   };
 
   return (
@@ -92,23 +90,22 @@ export const ScheduleField = ({ onChange, onBlur }: ScheduleFieldProps) => {
   );
 };
 
-type FleetExportFormProps = {
-  onFormChange: (values: FleetMonitorSettings) => void;
+type ServiceExportFormProps = {
+  onFormChange: (values: ServiceMonitorSettings) => void;
 };
 
 // TODO better handling of default values here
-export const FleetExportForm: React.FC<FleetExportFormProps> = ({
+export const ServiceExportForm: React.FC<ServiceExportFormProps> = ({
   onFormChange,
 }) => {
-  const { ipc } = useContext(CommunicationContext);
-  const [policyOptions, setPolicyOptions] = useState<
-    Array<{ text: string; value: string }>
-  >([]);
-  const [formState, setFormState] = useState<FleetMonitorSettings>({
+  // const { ipc } = useContext(CommunicationContext);
+  // const [policyOptions, setPolicyOptions] = useState<
+  //   Array<{ text: string; value: string }>
+  // >([]);
+  const [formState, setFormState] = useState<ServiceMonitorSettings>({
     name: "Test",
-    description: "Example",
     schedule: "@every 3m",
-    policy: "",
+    // policy: "",
   });
 
   const formChangeHandler = useCallback(
@@ -123,57 +120,48 @@ export const FleetExportForm: React.FC<FleetExportFormProps> = ({
     [formState, onFormChange]
   );
 
-  useEffect(() => {
-    const fetchPolicyOptions = async () => {
-      if (policyOptions.length > 0) return;
+  // useEffect(() => {
+  //   const fetchPolicyOptions = async () => {
+  //     if (policyOptions.length > 0) return;
 
-      const kibanaUrl: string = await ipc.callMain("get-kibana-url");
-      const apiKey: string = await ipc.callMain("get-kibana-api-key");
-      const policies = await KibanaClient.getAgentPolicies(kibanaUrl, apiKey);
-      const newPolicyOptions = policies.map(({ name: text, id: value }) => ({
-        text,
-        value,
-      }));
+  //     const kibanaUrl: string = await ipc.callMain("get-kibana-url");
+  //     const apiKey: string = await ipc.callMain("get-kibana-api-key");
+  //     const policies = await KibanaClient.getAgentPolicies(kibanaUrl, apiKey);
+  //     const newPolicyOptions = policies.map(({ name: text, id: value }) => ({
+  //       text,
+  //       value,
+  //     }));
 
-      setPolicyOptions(newPolicyOptions);
-      const initialPolicyOption = newPolicyOptions[0];
-      formChangeHandler("policy")(initialPolicyOption.value);
-    };
+  //     setPolicyOptions(newPolicyOptions);
+  //     const initialPolicyOption = newPolicyOptions[0];
+  //     formChangeHandler("policy")(initialPolicyOption.value);
+  //   };
 
-    fetchPolicyOptions();
-  }, [policyOptions.length, setPolicyOptions, ipc, formChangeHandler]);
+  //   fetchPolicyOptions();
+  // }, [policyOptions.length, setPolicyOptions, ipc, formChangeHandler]);
+  //
+  // <EuiFormRow label="Policy">
+  //   <EuiSelect
+  //     options={policyOptions}
+  //     onChange={formChangeHandler("policy")}
+  //     onBlur={formChangeHandler("policy")}
+  //   />
+  // </EuiFormRow>
 
   return (
-    <>
-      <EuiForm>
-        <EuiSpacer />
+    <EuiForm>
+      <EuiSpacer />
 
-        <EuiFormRow label="Monitor name">
-          <EuiFieldText name="name" onChange={formChangeHandler("name")} />
-        </EuiFormRow>
+      <EuiFormRow label="Monitor name">
+        <EuiFieldText name="name" onChange={formChangeHandler("name")} />
+      </EuiFormRow>
 
-        <EuiFormRow label="Description">
-          <EuiFieldText
-            name="description"
-            onChange={formChangeHandler("description")}
-          />
-        </EuiFormRow>
-
-        <EuiFormRow label="Schedule">
-          <ScheduleField
-            onChange={formChangeHandler("schedule")}
-            onBlur={formChangeHandler("schedule")}
-          />
-        </EuiFormRow>
-
-        <EuiFormRow label="Policy">
-          <EuiSelect
-            options={policyOptions}
-            onChange={formChangeHandler("policy")}
-            onBlur={formChangeHandler("policy")}
-          />
-        </EuiFormRow>
-      </EuiForm>
-    </>
+      <EuiFormRow label="Schedule">
+        <ScheduleField
+          onChange={formChangeHandler("schedule")}
+          onBlur={formChangeHandler("schedule")}
+        />
+      </EuiFormRow>
+    </EuiForm>
   );
 };

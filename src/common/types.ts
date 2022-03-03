@@ -84,3 +84,17 @@ export enum RecordingStatus {
   Recording = "RECORDING",
   Paused = "PAUSED",
 }
+
+export type BaseMonitorSettings = {
+  name: string;
+  schedule: string;
+};
+
+export type FleetMonitorSettings = BaseMonitorSettings & {
+  description: string;
+  policy: string;
+};
+
+export type ServiceMonitorSettings = BaseMonitorSettings;
+
+export type MonitorSettings = FleetMonitorSettings | ServiceMonitorSettings;

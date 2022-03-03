@@ -23,42 +23,15 @@ THE SOFTWARE.
 */
 
 import { EuiButton } from "@elastic/eui";
-import React, { useContext } from "react";
-import { KibanaClient } from "../helpers/kibana_client";
-import { CommunicationContext } from "../contexts/CommunicationContext";
+import React from "react";
 
-// TODO dedupe this
 type PushScriptButtonProps = {
-  monitorSettings: {
-    name: string;
-    description: string;
-    schedule: string;
-    policy: string;
-  };
-  scriptContent: string;
-  onPushStateChange: (isLoading: boolean, monitorName: string) => void;
+  onClick: () => void;
 };
 
 export const PushScriptButton: React.FC<PushScriptButtonProps> = ({
-  monitorSettings,
-  scriptContent,
-  onPushStateChange,
+  onClick,
 }) => {
-  const { ipc } = useContext(CommunicationContext);
-
-  const onClick = async () => {
-    const kibanaUrl: string = await ipc.callMain("get-kibana-url");
-    const apiKey: string = await ipc.callMain("get-kibana-api-key");
-    onPushStateChange(true, monitorSettings.name);
-    await KibanaClient.pushMonitor(
-      kibanaUrl,
-      apiKey,
-      monitorSettings,
-      scriptContent
-    );
-    onPushStateChange(false, monitorSettings.name);
-  };
-
   return (
     <EuiButton fill color="primary" iconType="logoKibana" onClick={onClick}>
       Push to Kibana

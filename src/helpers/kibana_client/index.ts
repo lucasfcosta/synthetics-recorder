@@ -23,6 +23,10 @@ THE SOFTWARE.
 */
 
 import axios from "axios";
+import type {
+  FleetMonitorSettings,
+  ServiceMonitorSettings,
+} from "../../common/types";
 
 type KibanaResponse<T> = {
   data: T;
@@ -121,12 +125,7 @@ export class KibanaClient {
   static async pushMonitor(
     baseUrl: string,
     apiKey: string,
-    monitorSettings: {
-      name: string;
-      description: string;
-      schedule: string;
-      policy: string;
-    },
+    monitorSettings: ServiceMonitorSettings,
     scriptContent: string
   ) {
     const payload = {
@@ -230,12 +229,7 @@ export class KibanaClient {
   static async pushMonitorToService(
     baseUrl: string,
     apiKey: string,
-    monitorSettings: {
-      name: string;
-      description: string;
-      schedule: string;
-      policy: string;
-    },
+    monitorSettings: ServiceMonitorSettings,
     scriptContent: string
   ) {
     const payload = {
