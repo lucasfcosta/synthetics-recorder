@@ -155,6 +155,20 @@ export const MonitorManagementFlyout: React.FC<
       field: "",
       actions: [
         {
+          name: "Edit",
+          description: "Edit this monitor",
+          icon: "pencil",
+          type: "icon",
+          color: "text",
+          onClick: async (item: SyntheticSourceRow) =>
+            ipc.callMain(
+              "link-to-external",
+              `${await ipc.callMain(
+                "get-kibana-url"
+              )}/app/uptime/edit-monitor/${btoa(item.id)}`
+            ),
+        },
+        {
           name: "Delete",
           description: "Delete this monitor",
           icon: "trash",
