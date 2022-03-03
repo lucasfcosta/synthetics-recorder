@@ -37,10 +37,16 @@ import {
   EuiTableSortingType,
 } from "@elastic/eui";
 import { CommunicationContext } from "../../contexts/CommunicationContext";
-import { KibanaClient, SyntheticSource } from "../../helpers/kibana_client";
+import { KibanaClient } from "../../helpers/kibana_client";
 
 type MonitorManagementFlyoutProps = {
   setIsManagementFlyoutVisible: (isVisible: boolean) => void;
+};
+
+type SyntheticSourceRow = {
+  name: string;
+  id: string;
+  type: string;
 };
 
 export const MonitorManagementFlyout: React.FC<
@@ -49,18 +55,37 @@ export const MonitorManagementFlyout: React.FC<
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const { ipc } = useContext(CommunicationContext);
   const [syntheticSources, setSyntheticSources] = useState<
-    Array<SyntheticSource>
+    Array<SyntheticSourceRow>
   >([]);
 
   useEffect(() => {
     (async () => {
       const apiKey: string = await ipc.callMain("get-kibana-api-key");
       const kibanaUrl: string = await ipc.callMain("get-kibana-url");
-      setSyntheticSources(await KibanaClient.getMonitors(kibanaUrl, apiKey));
+      const monitorSources = (
+        await Promise.all([
+          KibanaClient.getMonitors(kibanaUrl, apiKey),
+          KibanaClient.getServiceMonitors(kibanaUrl, apiKey),
+        ])
+      ).flatMap(sources => {
+        return sources.map(source => {
+          if ("attributes" in source) {
+            return {
+              name: source.attributes.name,
+              id: source.id,
+              type: "service",
+            };
+          }
+
+          return { name: source.name, id: source.id, type: "fleet" };
+        });
+      });
+
+      setSyntheticSources(monitorSources);
     })();
   }, [setSyntheticSources, ipc]);
 
-  const sorting: EuiTableSortingType<SyntheticSource> = {
+  const sorting: EuiTableSortingType<SyntheticSourceRow> = {
     sort: {
       field: "name",
       direction: sortDirection,
@@ -89,21 +114,30 @@ export const MonitorManagementFlyout: React.FC<
           icon: "trash",
           type: "icon",
           color: "danger",
-          onClick: async (item: SyntheticSource) => {
+          onClick: async (item: SyntheticSourceRow) => {
             const apiKey: string = await ipc.callMain("get-kibana-api-key");
             const kibanaUrl: string = await ipc.callMain("get-kibana-url");
             // TODO loading state when deleting
             setSyntheticSources(
               syntheticSources.filter(source => source.id !== item.id)
             );
-            await KibanaClient.deleteMonitor(kibanaUrl, apiKey, item.id);
+
+            if (item.type === "fleet") {
+              await KibanaClient.deleteMonitor(kibanaUrl, apiKey, item.id);
+            } else {
+              await KibanaClient.deleteServiceMonitor(
+                kibanaUrl,
+                apiKey,
+                item.id
+              );
+            }
           },
         },
       ],
     },
   ];
 
-  const onTableChange = ({ sort }: Criteria<SyntheticSource>) => {
+  const onTableChange = ({ sort }: Criteria<SyntheticSourceRow>) => {
     if (!sort || !sort.direction) return;
     const { direction: sortDirection } = sort;
     setSortDirection(sortDirection);

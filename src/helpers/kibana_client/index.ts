@@ -50,6 +50,14 @@ export type SyntheticSource = {
   inputs: Array<{ type: string; enabled: boolean }>;
 };
 
+export type ServiceMonitor = {
+  id: string;
+  attributes: {
+    type: string;
+    name: string;
+  };
+};
+
 // TODO create instances with API KEY and URL instead of always passing it in
 
 export class KibanaClient {
@@ -102,6 +110,39 @@ export class KibanaClient {
     );
 
     return (await Promise.all(installFetches)).flatMap(x => x);
+  }
+
+  static async getServiceMonitors(baseUrl: string, apiKey: string) {
+    const serviceMonitorsResponse: KibanaResponse<{
+      monitors: Array<ServiceMonitor>;
+    }> = await axios.get(
+      `${baseUrl}/internal/uptime/service/monitors?perPage=100`,
+      {
+        headers: {
+          Authorization: `ApiKey ${apiKey}`,
+        },
+      }
+    );
+
+    return serviceMonitorsResponse.data.monitors.filter(monitor => {
+      return monitor.attributes.type === "browser";
+    });
+  }
+
+  static async deleteServiceMonitor(
+    baseUrl: string,
+    apiKey: string,
+    monitorId: string
+  ) {
+    await axios.delete(
+      `${baseUrl}/internal/uptime/service/monitors/${monitorId}`,
+      {
+        headers: {
+          "kbn-xsrf": "xxx",
+          Authorization: `ApiKey ${apiKey}`,
+        },
+      }
+    );
   }
 
   static async deleteMonitor(
