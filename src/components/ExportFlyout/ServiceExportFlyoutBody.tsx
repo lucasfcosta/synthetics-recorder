@@ -30,7 +30,11 @@ import {
   EuiFlexItem,
 } from "@elastic/eui";
 import { CommunicationContext } from "../../contexts/CommunicationContext";
-import type { ActionContext, ServiceMonitorSettings } from "../../common/types";
+import type {
+  ActionContext,
+  ServiceMonitorSettings,
+  ServiceLocation,
+} from "../../common/types";
 import { getCodeFromActions } from "../../common/shared";
 import { ServiceExportForm } from "./ServiceExportForm";
 import { PushScriptButton } from "../PushScriptButton";
@@ -49,9 +53,31 @@ export const ServiceExportFlyoutBody: React.FC<
   const { ipc } = useContext(CommunicationContext);
   const [code, setCode] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [locations, setLocations] = useState<Array<ServiceLocation>>([]);
+
   const [formState, setFormState] = useState<ServiceMonitorSettings>({
     name: "Test",
     schedule: "@every 3m",
+    locations: [],
+  });
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      if (locations.length > 0) return;
+
+      const kibanaUrl: string = await ipc.callMain("get-kibana-url");
+      const apiKey: string = await ipc.callMain("get-kibana-api-key");
+      const newLocations = await KibanaClient.getServiceLocations(
+        kibanaUrl,
+        apiKey
+      );
+
+      setLocations(newLocations);
+
+      setFormState({ ...formState, locations: [newLocations[0]] });
+    };
+
+    fetchLocations();
   });
 
   useEffect(() => {
@@ -61,12 +87,6 @@ export const ServiceExportFlyoutBody: React.FC<
     })();
   }, [actions, setCode, ipc]);
 
-  const content = isLoading ? (
-    <ExportLoadingPanel />
-  ) : (
-    <ServiceExportForm onFormChange={setFormState} />
-  );
-
   const onClick = async () => {
     const kibanaUrl: string = await ipc.callMain("get-kibana-url");
     const apiKey: string = await ipc.callMain("get-kibana-api-key");
@@ -75,6 +95,22 @@ export const ServiceExportFlyoutBody: React.FC<
     setIsLoading(false);
     onSuccess(formState.name);
   };
+
+  const onFormChange = (fieldName: string, value: string) => {
+    if (fieldName === "locationId") {
+      const selectedLocation = locations.find(l => l.id === value);
+      if (!selectedLocation) return;
+      return setFormState({ ...formState, locations: [selectedLocation] });
+    }
+
+    return setFormState({ ...formState, [fieldName]: value });
+  };
+
+  const content = isLoading ? (
+    <ExportLoadingPanel />
+  ) : (
+    <ServiceExportForm locations={locations} onFormChange={onFormChange} />
+  );
 
   return (
     <>

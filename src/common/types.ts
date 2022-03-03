@@ -95,6 +95,15 @@ export type FleetMonitorSettings = BaseMonitorSettings & {
   policy: string;
 };
 
-export type ServiceMonitorSettings = BaseMonitorSettings;
+export type ServiceMonitorSettings = BaseMonitorSettings & {
+  locations: Array<ServiceLocation>;
+};
 
 export type MonitorSettings = FleetMonitorSettings | ServiceMonitorSettings;
+
+export type ServiceLocation = {
+  id: string;
+  label: string;
+  geo: { lat: number; lon: number };
+  url: string;
+};

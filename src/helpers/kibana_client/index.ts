@@ -26,6 +26,7 @@ import axios from "axios";
 import type {
   FleetMonitorSettings,
   ServiceMonitorSettings,
+  ServiceLocation,
 } from "../../common/types";
 
 type KibanaResponse<T> = {
@@ -125,7 +126,7 @@ export class KibanaClient {
   static async pushMonitor(
     baseUrl: string,
     apiKey: string,
-    monitorSettings: ServiceMonitorSettings,
+    monitorSettings: FleetMonitorSettings,
     scriptContent: string
   ) {
     const payload = {
@@ -226,6 +227,17 @@ export class KibanaClient {
     });
   }
 
+  static async getServiceLocations(baseUrl: string, apiKey: string) {
+    const response: KibanaResponse<{ locations: Array<ServiceLocation> }> =
+      await axios.get(`${baseUrl}/internal/uptime/service/locations`, {
+        headers: {
+          Authorization: `ApiKey ${apiKey}`,
+        },
+      });
+
+    return response.data.locations;
+  }
+
   static async pushMonitorToService(
     baseUrl: string,
     apiKey: string,
@@ -234,14 +246,7 @@ export class KibanaClient {
   ) {
     const payload = {
       type: "browser",
-      locations: [
-        {
-          id: "localhost",
-          label: "Local Synthetics Service",
-          geo: { lat: 0, lon: 0 },
-          url: "https://localhost:10001",
-        },
-      ],
+      locations: monitorSettings.locations,
       enabled: true,
       schedule: { number: "3", unit: "m" },
       "service.name": "",

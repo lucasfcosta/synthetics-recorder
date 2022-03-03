@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-import React, { useState, useContext, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   EuiForm,
   EuiFormRow,
@@ -33,9 +33,10 @@ import {
   EuiFlexGroup,
   EuiFlexItem,
 } from "@elastic/eui";
-import type { ServiceMonitorSettings } from "../../common/types";
-// import { KibanaClient } from "../../helpers/kibana_client";
-// import { CommunicationContext } from "../../contexts/CommunicationContext";
+import type {
+  ServiceMonitorSettings,
+  ServiceLocation,
+} from "../../common/types";
 
 type TimeUnits = "s" | "m" | "h";
 
@@ -90,63 +91,44 @@ export const ScheduleField = ({ onChange, onBlur }: ScheduleFieldProps) => {
   );
 };
 
+type ServiceMonitorSettingsFormValues = Omit<
+  ServiceMonitorSettings,
+  "locations"
+> & { locationId: string };
+
 type ServiceExportFormProps = {
-  onFormChange: (values: ServiceMonitorSettings) => void;
+  onFormChange: (fieldName: string, value: string) => void;
+  locations: Array<ServiceLocation>;
 };
 
 // TODO better handling of default values here
 export const ServiceExportForm: React.FC<ServiceExportFormProps> = ({
+  locations,
   onFormChange,
 }) => {
-  // const { ipc } = useContext(CommunicationContext);
-  // const [policyOptions, setPolicyOptions] = useState<
-  //   Array<{ text: string; value: string }>
-  // >([]);
-  const [formState, setFormState] = useState<ServiceMonitorSettings>({
+  const [formState, setFormState] = useState<ServiceMonitorSettingsFormValues>({
     name: "Test",
     schedule: "@every 3m",
-    // policy: "",
+    locationId: "",
   });
 
   const formChangeHandler = useCallback(
     (fieldName: string) =>
       (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | string) => {
-        const value = typeof e === "string" ? e : e.target.value;
+        const value =
+          typeof e === "object" && "target" in e ? e.target.value : e;
         if (!value) return;
         const newFormValues = { ...formState, [fieldName]: value };
         setFormState(newFormValues);
-        onFormChange(newFormValues);
+        onFormChange(fieldName, value);
       },
     [formState, onFormChange]
   );
 
-  // useEffect(() => {
-  //   const fetchPolicyOptions = async () => {
-  //     if (policyOptions.length > 0) return;
-
-  //     const kibanaUrl: string = await ipc.callMain("get-kibana-url");
-  //     const apiKey: string = await ipc.callMain("get-kibana-api-key");
-  //     const policies = await KibanaClient.getAgentPolicies(kibanaUrl, apiKey);
-  //     const newPolicyOptions = policies.map(({ name: text, id: value }) => ({
-  //       text,
-  //       value,
-  //     }));
-
-  //     setPolicyOptions(newPolicyOptions);
-  //     const initialPolicyOption = newPolicyOptions[0];
-  //     formChangeHandler("policy")(initialPolicyOption.value);
-  //   };
-
-  //   fetchPolicyOptions();
-  // }, [policyOptions.length, setPolicyOptions, ipc, formChangeHandler]);
-  //
-  // <EuiFormRow label="Policy">
-  //   <EuiSelect
-  //     options={policyOptions}
-  //     onChange={formChangeHandler("policy")}
-  //     onBlur={formChangeHandler("policy")}
-  //   />
-  // </EuiFormRow>
+  const locationOptions = locations.map(location => ({
+    text: location.label,
+    value: location.id,
+  }));
 
   return (
     <EuiForm>
@@ -160,6 +142,14 @@ export const ServiceExportForm: React.FC<ServiceExportFormProps> = ({
         <ScheduleField
           onChange={formChangeHandler("schedule")}
           onBlur={formChangeHandler("schedule")}
+        />
+      </EuiFormRow>
+
+      <EuiFormRow label="Policy">
+        <EuiSelect
+          options={locationOptions}
+          onChange={formChangeHandler("locationId")}
+          onBlur={formChangeHandler("locationId")}
         />
       </EuiFormRow>
     </EuiForm>
