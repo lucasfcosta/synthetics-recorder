@@ -38,7 +38,7 @@ import type {
   ServiceLocation,
 } from "../../common/types";
 
-type TimeUnits = "s" | "m" | "h";
+type TimeUnits = "s" | "m";
 
 interface ScheduleFieldProps {
   onChange: (number: string, unit: string) => void;
@@ -49,11 +49,7 @@ export const ScheduleField = ({ onChange, onBlur }: ScheduleFieldProps) => {
   const [unit, setUnit] = useState<TimeUnits>("m");
   const [n, setN] = useState<number>(3);
 
-  const options = [
-    { text: "Seconds", value: "s" },
-    { text: "Minutes", value: "m" },
-    { text: "Hours", value: "h" },
-  ];
+  const options = [{ text: "Minutes", value: "m" }];
 
   const onNumberUpdate = (event: React.ChangeEvent<HTMLInputElement>) => {
     const updatedNumber =
@@ -93,11 +89,11 @@ export const ScheduleField = ({ onChange, onBlur }: ScheduleFieldProps) => {
 
 type ServiceMonitorSettingsFormValues = Omit<
   ServiceMonitorSettings,
-  "locations"
-> & { locationId: string };
+  "locations" | "schedule"
+> & { locationId: string; number: string; unit: string };
 
 type ServiceExportFormProps = {
-  onFormChange: (fieldName: string, value: string) => void;
+  onFormChange: (changedFields: Record<string, string>) => void;
   locations: Array<ServiceLocation>;
 };
 
@@ -108,7 +104,8 @@ export const ServiceExportForm: React.FC<ServiceExportFormProps> = ({
 }) => {
   const [formState, setFormState] = useState<ServiceMonitorSettingsFormValues>({
     name: "Test",
-    schedule: "@every 3m",
+    number: "3",
+    unit: "m",
     locationId: "",
   });
 
@@ -118,11 +115,20 @@ export const ServiceExportForm: React.FC<ServiceExportFormProps> = ({
         const value =
           typeof e === "object" && "target" in e ? e.target.value : e;
         if (!value) return;
+
         const newFormValues = { ...formState, [fieldName]: value };
         setFormState(newFormValues);
-        onFormChange(fieldName, value);
+        onFormChange({ [fieldName]: value });
       },
     [formState, onFormChange]
+  );
+
+  const scheduleChangeHandler = useCallback(
+    (number, unit) => {
+      setFormState({ ...formState, unit, number });
+      onFormChange({ number, unit });
+    },
+    [formState, setFormState, onFormChange]
   );
 
   const locationOptions = locations.map(location => ({
@@ -140,8 +146,8 @@ export const ServiceExportForm: React.FC<ServiceExportFormProps> = ({
 
       <EuiFormRow label="Schedule">
         <ScheduleField
-          onChange={formChangeHandler("schedule")}
-          onBlur={formChangeHandler("schedule")}
+          onChange={scheduleChangeHandler}
+          onBlur={scheduleChangeHandler}
         />
       </EuiFormRow>
 

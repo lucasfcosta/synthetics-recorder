@@ -57,7 +57,8 @@ export const ServiceExportFlyoutBody: React.FC<
 
   const [formState, setFormState] = useState<ServiceMonitorSettings>({
     name: "Test",
-    schedule: "@every 3m",
+    number: "3",
+    unit: "m",
     locations: [],
   });
 
@@ -96,14 +97,25 @@ export const ServiceExportFlyoutBody: React.FC<
     onSuccess(formState.name);
   };
 
-  const onFormChange = (fieldName: string, value: string) => {
-    if (fieldName === "locationId") {
-      const selectedLocation = locations.find(l => l.id === value);
-      if (!selectedLocation) return;
-      return setFormState({ ...formState, locations: [selectedLocation] });
-    }
+  const onFormChange = (changedFields: Record<string, string>) => {
+    const updateFieldValue = (fieldName: string, value: string) => {
+      if (fieldName === "locationId") {
+        const selectedLocation = locations.find(l => l.id === value);
+        if (!selectedLocation) return;
+        return [selectedLocation];
+      }
 
-    return setFormState({ ...formState, [fieldName]: value });
+      return value;
+    };
+
+    const newState = Object.entries(changedFields).reduce(
+      (acc, [fieldName, value]) => {
+        return { ...acc, [fieldName]: updateFieldValue(fieldName, value) };
+      },
+      { ...formState }
+    );
+
+    setFormState(newState as ServiceMonitorSettings);
   };
 
   const content = isLoading ? (

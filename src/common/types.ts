@@ -87,16 +87,18 @@ export enum RecordingStatus {
 
 export type BaseMonitorSettings = {
   name: string;
-  schedule: string;
 };
 
 export type FleetMonitorSettings = BaseMonitorSettings & {
   description: string;
+  schedule: string;
   policy: string;
 };
 
 export type ServiceMonitorSettings = BaseMonitorSettings & {
   locations: Array<ServiceLocation>;
+  unit: string;
+  number: string;
 };
 
 export type MonitorSettings = FleetMonitorSettings | ServiceMonitorSettings;

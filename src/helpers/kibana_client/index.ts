@@ -294,7 +294,7 @@ export class KibanaClient {
       type: "browser",
       locations: monitorSettings.locations,
       enabled: true,
-      schedule: { number: "3", unit: "m" },
+      schedule: { number: monitorSettings.number, unit: monitorSettings.unit },
       "service.name": "",
       tags: [],
       timeout: null,
