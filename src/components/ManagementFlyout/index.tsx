@@ -35,6 +35,7 @@ import {
   EuiBasicTable,
   Criteria,
   EuiTableSortingType,
+  EuiBadge,
 } from "@elastic/eui";
 import { CommunicationContext } from "../../contexts/CommunicationContext";
 import { KibanaClient } from "../../helpers/kibana_client";
@@ -43,10 +44,12 @@ type MonitorManagementFlyoutProps = {
   setIsManagementFlyoutVisible: (isVisible: boolean) => void;
 };
 
+// TODO constrain type and status to a particular range of strings
 type SyntheticSourceRow = {
   name: string;
   id: string;
   type: string;
+  status: string;
 };
 
 export const MonitorManagementFlyout: React.FC<
@@ -62,6 +65,10 @@ export const MonitorManagementFlyout: React.FC<
     (async () => {
       const apiKey: string = await ipc.callMain("get-kibana-api-key");
       const kibanaUrl: string = await ipc.callMain("get-kibana-url");
+      const monitorSummaries = await KibanaClient.getMonitorSummaries(
+        kibanaUrl,
+        apiKey
+      );
       const monitorSources = (
         await Promise.all([
           KibanaClient.getMonitors(kibanaUrl, apiKey),
@@ -69,15 +76,30 @@ export const MonitorManagementFlyout: React.FC<
         ])
       ).flatMap(sources => {
         return sources.map(source => {
+          const sourceSummary = monitorSummaries.find(summary => {
+            return summary.monitor_id === source.id;
+          });
+
+          const sourceStatus =
+            sourceSummary && sourceSummary.state.summary
+              ? sourceSummary.state.summary.status
+              : "unknown";
+
           if ("attributes" in source) {
             return {
               name: source.attributes.name,
               id: source.id,
               type: "service",
+              status: sourceStatus,
             };
           }
 
-          return { name: source.name, id: source.id, type: "fleet" };
+          return {
+            name: source.name,
+            id: source.id,
+            type: "fleet",
+            status: sourceStatus,
+          };
         });
       });
 
@@ -103,6 +125,30 @@ export const MonitorManagementFlyout: React.FC<
     {
       field: "id",
       name: "ID",
+    },
+    {
+      field: "type",
+      name: "Type",
+      render: (type: string) => {
+        if (type === "fleet") {
+          return <EuiBadge color="default">Fleet</EuiBadge>;
+        } else {
+          return <EuiBadge color="hollow">Service</EuiBadge>;
+        }
+      },
+    },
+    {
+      field: "status",
+      name: "Status",
+      render: (status: string) => {
+        if (status === "up") {
+          return <EuiBadge color="success">Up</EuiBadge>;
+        } else if (status === "down") {
+          return <EuiBadge color="danger">Down</EuiBadge>;
+        } else {
+          return <EuiBadge color="warning">Unknown</EuiBadge>;
+        }
+      },
     },
     {
       name: "Actions",

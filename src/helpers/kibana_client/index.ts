@@ -58,6 +58,11 @@ export type ServiceMonitor = {
   };
 };
 
+export type MonitorSummary = {
+  monitor_id: string;
+  state: { summary?: { status: string } };
+};
+
 // TODO create instances with API KEY and URL instead of always passing it in
 
 export class KibanaClient {
@@ -325,5 +330,19 @@ export class KibanaClient {
         Authorization: `ApiKey ${apiKey}`,
       },
     });
+  }
+
+  static async getMonitorSummaries(baseUrl: string, apiKey: string) {
+    const { data }: KibanaResponse<{ summaries: Array<MonitorSummary> }> =
+      await axios.get(
+        `${baseUrl}/internal/uptime/monitor/list?dateRangeStart=now-15m&pageSize=100&dateRangeEnd=now`,
+        {
+          headers: {
+            Authorization: `ApiKey ${apiKey}`,
+          },
+        }
+      );
+
+    return data.summaries;
   }
 }
