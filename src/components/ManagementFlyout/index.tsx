@@ -23,6 +23,7 @@ THE SOFTWARE.
 */
 
 import React, { useContext, useEffect, useState } from "react";
+import axios from "axios";
 
 import {
   EuiFlyout,
@@ -44,6 +45,7 @@ import { CommunicationContext } from "../../contexts/CommunicationContext";
 import { KibanaClient } from "../../helpers/kibana_client";
 import { StatusPopover } from "./StatusPopover";
 import { NotificationContext } from "../../contexts/NotificationContext";
+import { PingsResponse } from "../../common/types";
 
 type MonitorManagementFlyoutProps = {
   setIsManagementFlyoutVisible: (isVisible: boolean) => void;
@@ -68,8 +70,43 @@ export const MonitorManagementFlyout: React.FC<
   const [syntheticSources, setSyntheticSources] = useState<
     Array<SyntheticSourceRow>
   >([]);
+  const [disabledIds, setDisabledIds] = useState<string[]>([]);
   const [deleteCalls, setDeleteCalls] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function checkPings() {
+      const apiKey: string = await ipc.callMain("get-kibana-api-key");
+      const kibanaUrl: string = await ipc.callMain("get-kibana-url");
+      const ids = syntheticSources.map(({ id }) => id);
+      /**
+       * TODO: this is a suboptimal method of checking the status of each monitor to see if
+       * it has `ping` data for the purpose of disabling the status button for dead, disabled,
+       * or otherwise broken monitors. Modifying this to use a new POST endpoint that takes a
+       * payload of IDs to check simultaneously will be much better for ES, Kibana, and the recorder.
+       */
+      setDisabledIds(
+        (
+          await Promise.all(
+            ids.map(id =>
+              axios.get<PingsResponse>(
+                `${kibanaUrl}/internal/uptime/pings?monitorId=${id}&from=now-5m&to=now&sort=desc&size=1`,
+                {
+                  headers: { Authorization: `ApiKey ${apiKey}` },
+                }
+              )
+            )
+          )
+        ).reduce<string[]>((toDisable, response, ind) => {
+          if (!response.data.pings.length) {
+            toDisable.push(ids[ind]);
+          }
+          return toDisable;
+        }, [])
+      );
+    }
+    checkPings();
+  }, [ipc, syntheticSources]);
 
   const deleteCallback = React.useCallback(
     async (item: SyntheticSourceRow) => {
@@ -218,6 +255,8 @@ export const MonitorManagementFlyout: React.FC<
             button={
               <EuiButtonIcon
                 aria-label="Click this button to view screenshot and additional detail for this monitor"
+                // `indexOf` returns -1 if item is not found in array
+                disabled={disabledIds.indexOf(id) !== -1}
                 onClick={() => setStatusPopoverId(id)}
                 iconType="indexRuntime"
               />
