@@ -29,7 +29,6 @@ import {
   EuiPanel,
   EuiSpacer,
   EuiTitle,
-  EuiGlobalToastList,
 } from "@elastic/eui";
 import { Steps } from "../Steps";
 import { StepsContext } from "../../contexts/StepsContext";
@@ -39,6 +38,7 @@ import { InlineExportFlyoutBody } from "./InlineExportFlyoutBody";
 import { SuiteExportFlyoutBody } from "./SuiteExportFlyoutBody";
 import { FleetExportFlyoutBody } from "./FleetExportFlyoutBody";
 import { ServiceExportFlyoutBody } from "./ServiceExportFlyoutBody";
+import { NotificationContext } from "../../contexts/NotificationContext";
 
 type ExportFlyoutBodyComponent = React.FC<{
   tabs: JSX.Element;
@@ -82,22 +82,8 @@ function CodeFlyout({
   setCode,
   setIsFlyoutVisible,
 }: ICodeFlyout) {
-  const [toasts, setToasts] = useState<Array<Toast>>([]);
   const [type, setType] = useState<ExportTabId>("inline");
-
-  const addPushSuccessToast = (title: string, text: string) => {
-    const newToast = {
-      id: String(toasts.length),
-      color: "success" as const,
-      title,
-      text,
-    };
-    setToasts(toasts.concat(newToast));
-  };
-
-  const removeToast = (deletedToast: { id: string }) => {
-    setToasts(toasts.filter(t => t.id !== deletedToast.id));
-  };
+  const { pushSuccessToast } = useContext(NotificationContext);
 
   const FlyoutBodyComponent = getFlyoutBodyComponent(type);
 
@@ -118,13 +104,7 @@ function CodeFlyout({
       <FlyoutBodyComponent
         tabs={tabs}
         actions={actions}
-        onSuccess={addPushSuccessToast}
-      />
-
-      <EuiGlobalToastList
-        toasts={toasts}
-        dismissToast={removeToast}
-        toastLifeTimeMs={6000}
+        onSuccess={pushSuccessToast}
       />
     </EuiFlyout>
   );

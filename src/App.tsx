@@ -24,7 +24,12 @@ THE SOFTWARE.
 
 import React, { useContext } from "react";
 import { useEffect, useRef, useState } from "react";
-import { EuiFlexGroup, EuiFlexItem, EuiPageBody } from "@elastic/eui";
+import {
+  EuiFlexGroup,
+  EuiFlexItem,
+  EuiGlobalToastList,
+  EuiPageBody,
+} from "@elastic/eui";
 import "./App.css";
 import "@elastic/eui/dist/eui_legacy_light.css";
 import { Header } from "./components/Header";
@@ -44,12 +49,38 @@ import { useAssertionDrawer } from "./hooks/useAssertionDrawer";
 import { useSyntheticsTest } from "./hooks/useSyntheticsTest";
 import { generateIR, generateMergedIR } from "./helpers/generator";
 import { UrlContext } from "./contexts/UrlContext";
+import { Toast } from "@elastic/eui/src/components/toast/global_toast_list";
+import { NotificationContext } from "./contexts/NotificationContext";
 
 const MAIN_CONTROLS_MIN_WIDTH = 600;
 
 export default function App() {
   const [url, setUrl] = useState("");
   const [stepActions, setStepActions] = useState<ActionContext[][]>([]);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [toastLifetime, setToastLifetime] = useState<number>(6000);
+  const pushSuccessToast = (title: string, text?: string) => {
+    const newToast: Toast = {
+      id: String(toasts.length),
+      color: "success" as const,
+      title,
+      text,
+    };
+    setToasts(toasts.concat(newToast));
+  };
+  const pushFailureToast = (title: string, text?: string) => {
+    setToasts(
+      toasts.concat({
+        id: String(toasts.length),
+        color: "danger" as const,
+        title,
+        text,
+      })
+    );
+  };
+  const removeToast = (deletedToast: { id: string }) => {
+    setToasts(toasts.filter(t => t.id !== deletedToast.id));
+  };
   const [recordingStatus, setRecordingStatus] = useState(
     RecordingStatus.NotRecording
   );
@@ -126,37 +157,52 @@ export default function App() {
           >
             <TestContext.Provider value={syntheticsTestUtils}>
               <UrlContext.Provider value={{ urlRef }}>
-                <Title />
-                <HeaderControls
-                  setIsCodeFlyoutVisible={setIsCodeFlyoutVisible}
-                />
-                <EuiPageBody>
-                  <EuiFlexGroup>
-                    <EuiFlexItem>
-                      <EuiFlexGroup direction="column">
-                        <EuiFlexItem grow={false}>
-                          <Header
-                            url={url}
-                            onUrlChange={onUrlChange}
-                            stepCount={stepActions.length}
-                          />
-                        </EuiFlexItem>
-                        <EuiFlexItem
-                          style={{ minWidth: MAIN_CONTROLS_MIN_WIDTH }}
-                        >
-                          <ExportFlyout
-                            isFlyoutVisible={isCodeFlyoutVisible}
-                            setIsFlyoutVisible={setIsCodeFlyoutVisible}
-                          />
-                        </EuiFlexItem>
-                      </EuiFlexGroup>
-                    </EuiFlexItem>
-                    <EuiFlexItem style={{ minWidth: 300 }}>
-                      <TestResult />
-                    </EuiFlexItem>
-                  </EuiFlexGroup>
-                  <AssertionDrawer />
-                </EuiPageBody>
+                <NotificationContext.Provider
+                  value={{
+                    pushFailureToast,
+                    pushSuccessToast,
+                    toasts,
+                    toastLifetime,
+                    setToastLifetime,
+                  }}
+                >
+                  <Title />
+                  <HeaderControls
+                    setIsCodeFlyoutVisible={setIsCodeFlyoutVisible}
+                  />
+                  <EuiPageBody>
+                    <EuiFlexGroup>
+                      <EuiFlexItem>
+                        <EuiFlexGroup direction="column">
+                          <EuiFlexItem grow={false}>
+                            <Header
+                              url={url}
+                              onUrlChange={onUrlChange}
+                              stepCount={stepActions.length}
+                            />
+                          </EuiFlexItem>
+                          <EuiFlexItem
+                            style={{ minWidth: MAIN_CONTROLS_MIN_WIDTH }}
+                          >
+                            <ExportFlyout
+                              isFlyoutVisible={isCodeFlyoutVisible}
+                              setIsFlyoutVisible={setIsCodeFlyoutVisible}
+                            />
+                          </EuiFlexItem>
+                        </EuiFlexGroup>
+                      </EuiFlexItem>
+                      <EuiFlexItem style={{ minWidth: 300 }}>
+                        <TestResult />
+                      </EuiFlexItem>
+                    </EuiFlexGroup>
+                    <AssertionDrawer />
+                    <EuiGlobalToastList
+                      toasts={toasts}
+                      dismissToast={removeToast}
+                      toastLifeTimeMs={6000}
+                    />
+                  </EuiPageBody>
+                </NotificationContext.Provider>
               </UrlContext.Provider>
             </TestContext.Provider>
           </RecordingContext.Provider>

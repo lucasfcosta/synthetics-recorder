@@ -38,10 +38,12 @@ import {
   EuiBadge,
   EuiButtonIcon,
   EuiPopover,
+  EuiLoadingSpinner,
 } from "@elastic/eui";
 import { CommunicationContext } from "../../contexts/CommunicationContext";
 import { KibanaClient } from "../../helpers/kibana_client";
 import { StatusPopover } from "./StatusPopover";
+import { NotificationContext } from "../../contexts/NotificationContext";
 
 type MonitorManagementFlyoutProps = {
   setIsManagementFlyoutVisible: (isVisible: boolean) => void;
@@ -60,11 +62,50 @@ export const MonitorManagementFlyout: React.FC<
 > = ({ setIsManagementFlyoutVisible }) => {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [statusPopoverId, setStatusPopoverId] = useState<string | undefined>();
+  const { pushFailureToast, pushSuccessToast } =
+    useContext(NotificationContext);
   const { ipc } = useContext(CommunicationContext);
   const [syntheticSources, setSyntheticSources] = useState<
     Array<SyntheticSourceRow>
   >([]);
+  const [deleteCalls, setDeleteCalls] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+
+  const deleteCallback = React.useCallback(
+    async (item: SyntheticSourceRow) => {
+      setDeleteCalls(new Set([...Array.from(deleteCalls), item.id]));
+      const apiKey: string = await ipc.callMain("get-kibana-api-key");
+      const kibanaUrl: string = await ipc.callMain("get-kibana-url");
+
+      try {
+        if (item.type === "fleet") {
+          await KibanaClient.deleteMonitor(kibanaUrl, apiKey, item.id);
+        } else {
+          await KibanaClient.deleteServiceMonitor(kibanaUrl, apiKey, item.id);
+        }
+
+        // TODO loading state when deleting
+        setSyntheticSources(
+          syntheticSources.filter(source => source.id !== item.id)
+        );
+
+        pushSuccessToast(
+          `${item.name}`,
+          `Monitor "${item.name}" has been deleted`
+        );
+      } catch (e: unknown) {
+        pushFailureToast(
+          `${item.name}`,
+          `There was an error deleting this monitor`
+        );
+      } finally {
+        setDeleteCalls(
+          new Set(Array.from(deleteCalls).filter(f => f !== item.id))
+        );
+      }
+    },
+    [deleteCalls, ipc, pushFailureToast, pushSuccessToast, syntheticSources]
+  );
 
   useEffect(() => {
     (async () => {
@@ -128,6 +169,17 @@ export const MonitorManagementFlyout: React.FC<
       field: "name",
       name: "Name",
       sortable: true,
+      render: (name: string, item: SyntheticSourceRow) =>
+        deleteCalls.has(item.id) ? (
+          <EuiFlexGroup alignItems="baseline" gutterSize="xs">
+            <EuiFlexItem grow={false}>
+              <EuiLoadingSpinner size="s" />
+            </EuiFlexItem>
+            <EuiFlexItem grow={false}>{name}</EuiFlexItem>
+          </EuiFlexGroup>
+        ) : (
+          name
+        ),
     },
     {
       field: "id",
@@ -203,24 +255,7 @@ export const MonitorManagementFlyout: React.FC<
           icon: "trash",
           type: "icon",
           color: "danger",
-          onClick: async (item: SyntheticSourceRow) => {
-            const apiKey: string = await ipc.callMain("get-kibana-api-key");
-            const kibanaUrl: string = await ipc.callMain("get-kibana-url");
-            // TODO loading state when deleting
-            setSyntheticSources(
-              syntheticSources.filter(source => source.id !== item.id)
-            );
-
-            if (item.type === "fleet") {
-              await KibanaClient.deleteMonitor(kibanaUrl, apiKey, item.id);
-            } else {
-              await KibanaClient.deleteServiceMonitor(
-                kibanaUrl,
-                apiKey,
-                item.id
-              );
-            }
-          },
+          onClick: (item: SyntheticSourceRow) => deleteCallback(item),
         },
       ],
     },
@@ -246,7 +281,7 @@ export const MonitorManagementFlyout: React.FC<
       </EuiFlyoutHeader>
       <EuiFlyoutBody>
         <EuiBasicTable
-          loading={loading}
+          loading={loading || deleteCalls.size > 0}
           noItemsMessage={
             loading ? "Fetching managed monitors" : "No monitors found"
           }
