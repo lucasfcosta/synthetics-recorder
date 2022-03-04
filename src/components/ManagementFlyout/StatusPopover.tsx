@@ -32,7 +32,9 @@ import {
   EuiLoadingSpinner,
   EuiPanel,
   EuiTitle,
+  EuiText,
 } from "@elastic/eui";
+import moment from "moment";
 
 interface Props {
   monitorId: string;
@@ -83,6 +85,7 @@ export function StatusPopover({ monitorId, monitorName }: Props) {
   const [timestamp, setTimestamp] = useState("");
   const [loading, setLoading] = useState(true);
   const { ipc } = useContext(CommunicationContext);
+
   useEffect(() => {
     async function fetchScreenshots() {
       setImageData([]);
@@ -191,6 +194,7 @@ export function StatusPopover({ monitorId, monitorName }: Props) {
       setImageData(nextImageData);
       setLoading(false);
     }
+
     fetchScreenshots();
   }, [ipc, monitorId]);
 
@@ -200,19 +204,28 @@ export function StatusPopover({ monitorId, monitorName }: Props) {
         <EuiFlexItem grow={false}>
           <EuiLoadingSpinner size="m" />
         </EuiFlexItem>
-        <EuiFlexItem>Fetching the goodness</EuiFlexItem>
+        <EuiFlexItem>Fetching the goodness 🚚</EuiFlexItem>
       </EuiFlexGroup>
     );
+
   return imageData.length ? (
-    <EuiPanel>
+    <EuiPanel
+      hasBorder={false}
+      grow={false}
+      style={{ height: "300px", overflow: "scroll" }}
+    >
       <EuiTitle size="s">
         <h5>{monitorName}</h5>
       </EuiTitle>
-      <EuiFlexGroup>
+      <EuiFlexGroup alignItems="center">
         <EuiFlexItem grow={false}>
-          Duration: {duration ? Math.round(duration / 1000 / 1000) : 0}s
+          <EuiText>
+            Duration: {duration ? Math.round(duration / 1000 / 1000) : 0}s
+          </EuiText>
         </EuiFlexItem>
-        <EuiFlexItem grow={false}>Ran: {timestamp}</EuiFlexItem>
+        <EuiFlexItem grow={false}>
+          Ran: {moment(timestamp).format("MMMM Do YYYY, h:mm:ss a")}
+        </EuiFlexItem>
       </EuiFlexGroup>
       <EuiFlexGroup direction="column">
         {imageData.map((img, ind) => (
