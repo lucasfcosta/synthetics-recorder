@@ -35,48 +35,16 @@ import {
   EuiText,
 } from "@elastic/eui";
 import moment from "moment";
+import {
+  PingsResponse,
+  JourneyResponse,
+  RefResult,
+  BlockBlob,
+} from "../../common/types";
 
 interface Props {
   monitorId: string;
   monitorName: string;
-}
-
-interface PingsResponse {
-  pings: Array<{
-    monitor: { check_group: string; duration: { us: number } };
-    timestamp: string;
-  }>;
-}
-
-interface JourneyResponse {
-  steps: Array<{
-    synthetics: { isScreenshotRef: boolean };
-  }>;
-}
-
-interface Block {
-  top: number;
-  width: number;
-  left: number;
-  height: number;
-  hash: string;
-}
-
-interface RefResult {
-  screenshotRef: {
-    screenshot_ref: {
-      blocks: Block[];
-      height: number;
-      width: number;
-    };
-  };
-}
-
-interface BlockBlob {
-  id: string;
-  synthetics: {
-    blob: string;
-  };
 }
 
 export function StatusPopover({ monitorId, monitorName }: Props) {

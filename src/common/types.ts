@@ -109,3 +109,41 @@ export type ServiceLocation = {
   geo: { lat: number; lon: number };
   url: string;
 };
+
+export interface PingsResponse {
+  pings: Array<{
+    monitor: { check_group: string; duration: { us: number } };
+    timestamp: string;
+  }>;
+}
+
+export interface JourneyResponse {
+  steps: Array<{
+    synthetics: { isScreenshotRef: boolean };
+  }>;
+}
+
+export interface Block {
+  top: number;
+  width: number;
+  left: number;
+  height: number;
+  hash: string;
+}
+
+export interface RefResult {
+  screenshotRef: {
+    screenshot_ref: {
+      blocks: Block[];
+      height: number;
+      width: number;
+    };
+  };
+}
+
+export interface BlockBlob {
+  id: string;
+  synthetics: {
+    blob: string;
+  };
+}
