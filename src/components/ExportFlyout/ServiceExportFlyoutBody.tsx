@@ -38,13 +38,19 @@ import type {
 import { getCodeFromActions } from "../../common/shared";
 import { ServiceExportForm } from "./ServiceExportForm";
 import { PushScriptButton } from "../PushScriptButton";
+import { RunOnceButton } from "../RunOnceButton";
 import { ExportLoadingPanel } from "./ExportLoadingPanel";
-import { KibanaClient } from "../../helpers/kibana_client";
+import { KibanaClient, RunOnceQueryHit } from "../../helpers/kibana_client";
+import { useIsMounted } from "../../hooks/useIsMounted";
 
 type ServiceExportFlyoutBodyProps = {
   tabs: JSX.Element;
   actions: ActionContext[][];
-  onSuccess: (monitorName: string) => void;
+  onSuccess: (title: string, text: string) => void;
+};
+
+const findSummary = (hits: Array<RunOnceQueryHit>) => {
+  return hits.find(hit => hit._source.synthetics.type === "heartbeat/summary");
 };
 
 export const ServiceExportFlyoutBody: React.FC<
@@ -52,8 +58,11 @@ export const ServiceExportFlyoutBody: React.FC<
 > = ({ tabs, actions, onSuccess }) => {
   const { ipc } = useContext(CommunicationContext);
   const [code, setCode] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isPushing, setIsPushing] = useState<boolean>(false);
+  const [isRunningOnce, setIsRunningOnce] = useState<boolean>(false);
+  const [runningOnceStarted, setRunningOnceStarted] = useState<boolean>(false);
   const [locations, setLocations] = useState<Array<ServiceLocation>>([]);
+  const isMounted = useIsMounted();
 
   const [formState, setFormState] = useState<ServiceMonitorSettings>({
     name: "Test",
@@ -88,13 +97,52 @@ export const ServiceExportFlyoutBody: React.FC<
     })();
   }, [actions, setCode, ipc]);
 
-  const onClick = async () => {
+  const pushToKibana = async () => {
     const kibanaUrl: string = await ipc.callMain("get-kibana-url");
     const apiKey: string = await ipc.callMain("get-kibana-api-key");
-    setIsLoading(true);
+    setIsPushing(true);
     await KibanaClient.pushMonitorToService(kibanaUrl, apiKey, formState, code);
-    setIsLoading(false);
-    onSuccess(formState.name);
+    setIsPushing(false);
+    onSuccess(
+      `Monitor "${formState.name}" pushed successfully`,
+      "You can see this monitor in Kibana."
+    );
+  };
+
+  const runOnce = async () => {
+    const kibanaUrl: string = await ipc.callMain("get-kibana-url");
+    const apiKey: string = await ipc.callMain("get-kibana-api-key");
+    setIsRunningOnce(true);
+    const { uuid: runOnceUuid } = await KibanaClient.runMonitorOnce(
+      kibanaUrl,
+      apiKey,
+      formState,
+      code
+    );
+
+    let runOnceResults = await KibanaClient.fetchRunOnceResults(
+      kibanaUrl,
+      apiKey,
+      runOnceUuid
+    );
+
+    while (!findSummary(runOnceResults.hits)) {
+      if (runOnceResults.total > 0) setRunningOnceStarted(true);
+
+      if (!isMounted()) return;
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      runOnceResults = await KibanaClient.fetchRunOnceResults(
+        kibanaUrl,
+        apiKey,
+        runOnceUuid
+      );
+    }
+
+    setIsRunningOnce(false);
+    onSuccess(
+      `Monitor "${formState.name}" ran remotely.`,
+      "This monitor is ready to be pushed."
+    );
   };
 
   const onFormChange = (changedFields: Record<string, string>) => {
@@ -118,11 +166,16 @@ export const ServiceExportFlyoutBody: React.FC<
     setFormState(newState as ServiceMonitorSettings);
   };
 
-  const content = isLoading ? (
-    <ExportLoadingPanel />
-  ) : (
-    <ServiceExportForm locations={locations} onFormChange={onFormChange} />
-  );
+  const runningOnceMessage = runningOnceStarted
+    ? "Your monitor is running remotely... "
+    : "Pushing monitor to the service...";
+
+  const content =
+    isPushing || isRunningOnce ? (
+      <ExportLoadingPanel message={isRunningOnce ? runningOnceMessage : null} />
+    ) : (
+      <ServiceExportForm locations={locations} onFormChange={onFormChange} />
+    );
 
   return (
     <>
@@ -132,9 +185,12 @@ export const ServiceExportFlyoutBody: React.FC<
       </EuiFlyoutBody>
 
       <EuiFlyoutFooter>
-        <EuiFlexGroup justifyContent="flexEnd">
+        <EuiFlexGroup justifyContent="spaceBetween">
           <EuiFlexItem grow={false}>
-            <PushScriptButton onClick={onClick} />
+            <RunOnceButton onClick={runOnce} />
+          </EuiFlexItem>
+          <EuiFlexItem grow={false}>
+            <PushScriptButton onClick={pushToKibana} />
           </EuiFlexItem>
         </EuiFlexGroup>
       </EuiFlyoutFooter>

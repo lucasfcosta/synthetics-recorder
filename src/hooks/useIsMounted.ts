@@ -22,32 +22,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-import React from "react";
-import {
-  EuiFlexGroup,
-  EuiSpacer,
-  EuiLoadingSpinner,
-  EuiText,
-} from "@elastic/eui";
+import { useCallback, useEffect, useRef } from "react";
 
-type ExportLoadingPanelProps = {
-  message?: string | null;
-};
+export const useIsMounted = (): (() => boolean) => {
+  const isMountedRef = useRef<boolean>(false);
 
-export const ExportLoadingPanel: React.FC<ExportLoadingPanelProps> = ({
-  message,
-}) => {
-  const displayMessage = message ?? "Pushing monitor...";
-  return (
-    <EuiFlexGroup
-      justifyContent="center"
-      alignItems="center"
-      direction="column"
-      style={{ marginTop: 120, width: "100%" }}
-    >
-      <EuiLoadingSpinner size="l" />
-      <EuiSpacer />
-      <EuiText>{displayMessage}</EuiText>
-    </EuiFlexGroup>
-  );
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  return useCallback(() => isMountedRef.current, []);
 };

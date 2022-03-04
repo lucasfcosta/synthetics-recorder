@@ -38,7 +38,7 @@ import { getCodeFromActions } from "../../common/shared";
 type InlineExportFlyoutBodyProps = {
   tabs: JSX.Element;
   actions: ActionContext[][];
-  onSuccess: (monitorName: string) => void;
+  onSuccess: (title: string, text: string) => void;
 };
 
 export const InlineExportFlyoutBody: React.FC<InlineExportFlyoutBodyProps> = ({

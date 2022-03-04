@@ -38,7 +38,7 @@ import { getCodeFromActions } from "../../common/shared";
 type SuiteExportFlyoutBodyProps = {
   tabs: JSX.Element;
   actions: ActionContext[][];
-  onSuccess: (monitorName: string) => void;
+  onSuccess: (title: string, text: string) => void;
 };
 
 export const SuiteExportFlyoutBody: React.FC<SuiteExportFlyoutBodyProps> = ({

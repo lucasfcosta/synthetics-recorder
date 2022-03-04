@@ -22,32 +22,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+import { EuiButton } from "@elastic/eui";
 import React from "react";
-import {
-  EuiFlexGroup,
-  EuiSpacer,
-  EuiLoadingSpinner,
-  EuiText,
-} from "@elastic/eui";
 
-type ExportLoadingPanelProps = {
-  message?: string | null;
+type RunOnceButtonProps = {
+  onClick: () => void;
 };
 
-export const ExportLoadingPanel: React.FC<ExportLoadingPanelProps> = ({
-  message,
-}) => {
-  const displayMessage = message ?? "Pushing monitor...";
+export const RunOnceButton: React.FC<RunOnceButtonProps> = ({ onClick }) => {
   return (
-    <EuiFlexGroup
-      justifyContent="center"
-      alignItems="center"
-      direction="column"
-      style={{ marginTop: 120, width: "100%" }}
-    >
-      <EuiLoadingSpinner size="l" />
-      <EuiSpacer />
-      <EuiText>{displayMessage}</EuiText>
-    </EuiFlexGroup>
+    <EuiButton fill color="ghost" iconType="playFilled" onClick={onClick}>
+      Run once
+    </EuiButton>
   );
 };

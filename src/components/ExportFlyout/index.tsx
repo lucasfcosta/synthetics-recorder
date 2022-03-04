@@ -43,7 +43,7 @@ import { ServiceExportFlyoutBody } from "./ServiceExportFlyoutBody";
 type ExportFlyoutBodyComponent = React.FC<{
   tabs: JSX.Element;
   actions: ActionContext[][];
-  onSuccess: (monitorName: string) => void;
+  onSuccess: (title: string, text: string) => void;
 }>;
 
 const getFlyoutBodyComponent = (
@@ -85,12 +85,12 @@ function CodeFlyout({
   const [toasts, setToasts] = useState<Array<Toast>>([]);
   const [type, setType] = useState<ExportTabId>("inline");
 
-  const addPushSuccessToast = (monitorName: string) => {
+  const addPushSuccessToast = (title: string, text: string) => {
     const newToast = {
-      id: monitorName,
+      id: String(toasts.length),
       color: "success" as const,
-      title: `Monitor "${monitorName}" pushed successfully`,
-      text: "You can see this monitor in Kibana.",
+      title,
+      text,
     };
     setToasts(toasts.concat(newToast));
   };

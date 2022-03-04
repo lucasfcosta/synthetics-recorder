@@ -23,6 +23,7 @@ THE SOFTWARE.
 */
 
 import axios from "axios";
+import { v4 as uuidv4 } from "uuid";
 import type {
   FleetMonitorSettings,
   ServiceMonitorSettings,
@@ -61,6 +62,25 @@ export type ServiceMonitor = {
 export type MonitorSummary = {
   monitor_id: string;
   state: { summary?: { status: string } };
+};
+
+export type RunOnceResults = {
+  result: {
+    rawResponse: {
+      hits: {
+        total: number;
+        hits: Array<RunOnceQueryHit>;
+      };
+    };
+  };
+};
+
+export type RunOnceQueryHit = {
+  _source: {
+    synthetics: {
+      type: string;
+    };
+  };
 };
 
 // TODO create instances with API KEY and URL instead of always passing it in
@@ -344,5 +364,117 @@ export class KibanaClient {
       );
 
     return data.summaries;
+  }
+
+  static async runMonitorOnce(
+    baseUrl: string,
+    apiKey: string,
+    monitorSettings: ServiceMonitorSettings,
+    scriptContent: string
+  ) {
+    // TODO same as above, create a generator
+    const payload = {
+      type: "browser",
+      locations: monitorSettings.locations,
+      enabled: true,
+      schedule: { number: "3", unit: "m" },
+      "service.name": "",
+      tags: [],
+      timeout: null,
+      name: "Test",
+      namespace: "default",
+      __ui: {
+        script_source: { is_generated_script: false, file_name: "" },
+        is_zip_url_tls_enabled: false,
+        is_tls_enabled: false,
+      },
+      "source.zip_url.url": "",
+      "source.zip_url.username": "",
+      "source.zip_url.password": "",
+      "source.zip_url.folder": "",
+      "source.zip_url.proxy_url": "",
+      "source.inline.script": scriptContent,
+      params: "",
+      screenshots: "on",
+      synthetics_args: [],
+      "filter_journeys.match": "",
+      "filter_journeys.tags": [],
+      ignore_https_errors: false,
+      "throttling.is_enabled": true,
+      "throttling.download_speed": "5",
+      "throttling.upload_speed": "3",
+      "throttling.latency": "20",
+      "throttling.config": "5d/3u/20l",
+    };
+
+    const uuid = uuidv4();
+
+    await axios.post(
+      `${baseUrl}/internal/uptime/service/monitors/run_once/${uuid}`,
+      payload,
+      {
+        headers: {
+          "kbn-xsrf": "xxx",
+          Authorization: `ApiKey ${apiKey}`,
+        },
+      }
+    );
+
+    return { uuid };
+  }
+
+  static async fetchRunOnceResults(
+    baseUrl: string,
+    apiKey: string,
+    monitorId: string
+  ) {
+    const payload = {
+      batch: [
+        {
+          request: {
+            params: {
+              index: "heartbeat-8*,heartbeat-7*,synthetics-*",
+              body: {
+                sort: [{ "@timestamp": "desc" }],
+                query: {
+                  bool: {
+                    filter: [
+                      {
+                        term: {
+                          config_id: monitorId,
+                        },
+                      },
+                      {
+                        terms: {
+                          "synthetics.type": [
+                            "heartbeat/summary",
+                            "journey/start",
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+              size: 10,
+            },
+          },
+          options: { strategy: "ese" },
+        },
+      ],
+    };
+
+    const responseValue: KibanaResponse<RunOnceResults> = await axios.post(
+      `${baseUrl}/internal/bsearch`,
+      payload,
+      {
+        headers: {
+          "kbn-xsrf": "xxx",
+          Authorization: `ApiKey ${apiKey}`,
+        },
+      }
+    );
+
+    return responseValue.data.result.rawResponse.hits;
   }
 }

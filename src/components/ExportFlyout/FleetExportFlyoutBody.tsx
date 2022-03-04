@@ -40,7 +40,7 @@ import { KibanaClient } from "../../helpers/kibana_client";
 type FleetExportFlyoutBodyProps = {
   tabs: JSX.Element;
   actions: ActionContext[][];
-  onSuccess: (monitorName: string) => void;
+  onSuccess: (title: string, text: string) => void;
 };
 
 export const FleetExportFlyoutBody: React.FC<FleetExportFlyoutBodyProps> = ({
@@ -77,7 +77,10 @@ export const FleetExportFlyoutBody: React.FC<FleetExportFlyoutBodyProps> = ({
     setIsLoading(true);
     await KibanaClient.pushMonitor(kibanaUrl, apiKey, formState, code);
     setIsLoading(false);
-    onSuccess(formState.name);
+    onSuccess(
+      `Monitor "${formState.name}" pushed successfully`,
+      "You can see this monitor in Kibana."
+    );
   };
 
   return (
