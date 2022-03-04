@@ -69,13 +69,6 @@ interface ICodeFlyout {
   setIsFlyoutVisible: Setter<boolean>;
 }
 
-type Toast = {
-  id: string;
-  title: React.ReactNode;
-  color: "success";
-  text?: React.ReactChild;
-};
-
 function CodeFlyout({
   actions,
   code,
