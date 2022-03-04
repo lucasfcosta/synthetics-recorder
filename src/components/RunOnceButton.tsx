@@ -26,12 +26,22 @@ import { EuiButton } from "@elastic/eui";
 import React from "react";
 
 type RunOnceButtonProps = {
+  disabled: boolean;
   onClick: () => void;
 };
 
-export const RunOnceButton: React.FC<RunOnceButtonProps> = ({ onClick }) => {
+export const RunOnceButton: React.FC<RunOnceButtonProps> = ({
+  disabled,
+  onClick,
+}) => {
   return (
-    <EuiButton fill color="ghost" iconType="playFilled" onClick={onClick}>
+    <EuiButton
+      disabled={disabled}
+      fill
+      color="ghost"
+      iconType="playFilled"
+      onClick={onClick}
+    >
       Run once
     </EuiButton>
   );

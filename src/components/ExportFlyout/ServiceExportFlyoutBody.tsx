@@ -62,6 +62,7 @@ export const ServiceExportFlyoutBody: React.FC<
   const [isRunningOnce, setIsRunningOnce] = useState<boolean>(false);
   const [runningOnceStarted, setRunningOnceStarted] = useState<boolean>(false);
   const [locations, setLocations] = useState<Array<ServiceLocation>>([]);
+  const [pushInProgress, setPushInProgress] = useState(false);
   const isMounted = useIsMounted();
 
   const [formState, setFormState] = useState<ServiceMonitorSettings>({
@@ -98,6 +99,8 @@ export const ServiceExportFlyoutBody: React.FC<
   }, [actions, setCode, ipc]);
 
   const pushToKibana = async () => {
+    // TODO: make a wrapper function for this "push status" functionality
+    setPushInProgress(true);
     const kibanaUrl: string = await ipc.callMain("get-kibana-url");
     const apiKey: string = await ipc.callMain("get-kibana-api-key");
     setIsPushing(true);
@@ -107,9 +110,12 @@ export const ServiceExportFlyoutBody: React.FC<
       `Monitor "${formState.name}" pushed successfully`,
       "You can see this monitor in Kibana."
     );
+    setPushInProgress(false);
   };
 
   const runOnce = async () => {
+    // TODO: make a wrapper function for this "push status" functionality
+    setPushInProgress(true);
     const kibanaUrl: string = await ipc.callMain("get-kibana-url");
     const apiKey: string = await ipc.callMain("get-kibana-api-key");
     setIsRunningOnce(true);
@@ -143,6 +149,7 @@ export const ServiceExportFlyoutBody: React.FC<
       `Monitor "${formState.name}" ran remotely.`,
       "This monitor is ready to be pushed."
     );
+    setPushInProgress(false);
   };
 
   const onFormChange = (changedFields: Record<string, string>) => {
@@ -187,10 +194,13 @@ export const ServiceExportFlyoutBody: React.FC<
       <EuiFlyoutFooter>
         <EuiFlexGroup justifyContent="spaceBetween">
           <EuiFlexItem grow={false}>
-            <RunOnceButton onClick={runOnce} />
+            <RunOnceButton disabled={pushInProgress} onClick={runOnce} />
           </EuiFlexItem>
           <EuiFlexItem grow={false}>
-            <PushScriptButton onClick={pushToKibana} />
+            <PushScriptButton
+              disabled={pushInProgress}
+              onClick={pushToKibana}
+            />
           </EuiFlexItem>
         </EuiFlexGroup>
       </EuiFlyoutFooter>

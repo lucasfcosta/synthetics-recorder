@@ -49,8 +49,9 @@ export const FleetExportFlyoutBody: React.FC<FleetExportFlyoutBodyProps> = ({
   onSuccess,
 }) => {
   const { ipc } = useContext(CommunicationContext);
-  const [code, setCode] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [pushInProgress, setPushInProgress] = useState(false);
+  const [code, setCode] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [formState, setFormState] = useState<FleetMonitorSettings>({
     name: "Test",
     description: "Example",
@@ -72,6 +73,7 @@ export const FleetExportFlyoutBody: React.FC<FleetExportFlyoutBodyProps> = ({
   );
 
   const onClick = async () => {
+    setPushInProgress(true);
     const kibanaUrl: string = await ipc.callMain("get-kibana-url");
     const apiKey: string = await ipc.callMain("get-kibana-api-key");
     setIsLoading(true);
@@ -81,6 +83,7 @@ export const FleetExportFlyoutBody: React.FC<FleetExportFlyoutBodyProps> = ({
       `Monitor "${formState.name}" pushed successfully`,
       "You can see this monitor in Kibana."
     );
+    setPushInProgress(false);
   };
 
   return (
@@ -93,7 +96,7 @@ export const FleetExportFlyoutBody: React.FC<FleetExportFlyoutBodyProps> = ({
       <EuiFlyoutFooter>
         <EuiFlexGroup justifyContent="flexEnd">
           <EuiFlexItem grow={false}>
-            <PushScriptButton onClick={onClick} />
+            <PushScriptButton disabled={pushInProgress} onClick={onClick} />
           </EuiFlexItem>
         </EuiFlexGroup>
       </EuiFlyoutFooter>

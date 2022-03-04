@@ -26,14 +26,22 @@ import { EuiButton } from "@elastic/eui";
 import React from "react";
 
 type PushScriptButtonProps = {
+  disabled: boolean;
   onClick: () => void;
 };
 
 export const PushScriptButton: React.FC<PushScriptButtonProps> = ({
+  disabled,
   onClick,
 }) => {
   return (
-    <EuiButton fill color="primary" iconType="logoKibana" onClick={onClick}>
+    <EuiButton
+      disabled={disabled}
+      fill
+      color="primary"
+      iconType="logoKibana"
+      onClick={onClick}
+    >
       Push to Kibana
     </EuiButton>
   );
