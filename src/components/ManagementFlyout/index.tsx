@@ -64,9 +64,11 @@ export const MonitorManagementFlyout: React.FC<
   const [syntheticSources, setSyntheticSources] = useState<
     Array<SyntheticSourceRow>
   >([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
+      setLoading(true);
       const apiKey: string = await ipc.callMain("get-kibana-api-key");
       const kibanaUrl: string = await ipc.callMain("get-kibana-url");
       const monitorSummaries = await KibanaClient.getMonitorSummaries(
@@ -108,6 +110,7 @@ export const MonitorManagementFlyout: React.FC<
       });
 
       setSyntheticSources(monitorSources);
+      setLoading(false);
     })();
   }, [setSyntheticSources, ipc]);
 
@@ -243,6 +246,10 @@ export const MonitorManagementFlyout: React.FC<
       </EuiFlyoutHeader>
       <EuiFlyoutBody>
         <EuiBasicTable
+          loading={loading}
+          noItemsMessage={
+            loading ? "Fetching managed monitors" : "No monitors found"
+          }
           tableCaption="Demo for responsive EuiBasicTable with mobile options"
           items={syntheticSources}
           itemId="id"
