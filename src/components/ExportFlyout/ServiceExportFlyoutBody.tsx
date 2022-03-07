@@ -28,6 +28,7 @@ import {
   EuiFlyoutFooter,
   EuiFlexGroup,
   EuiFlexItem,
+  EuiButton,
 } from "@elastic/eui";
 import { CommunicationContext } from "../../contexts/CommunicationContext";
 import type {
@@ -40,6 +41,7 @@ import { ServiceExportForm } from "./ServiceExportForm";
 import { PushScriptButton } from "../PushScriptButton";
 import { RunOnceButton } from "../RunOnceButton";
 import { ExportLoadingPanel } from "./ExportLoadingPanel";
+import { ScreenshotGallery } from "../ScreenshotGallery";
 import { KibanaClient, RunOnceQueryHit } from "../../helpers/kibana_client";
 import { useIsMounted } from "../../hooks/useIsMounted";
 
@@ -61,6 +63,9 @@ export const ServiceExportFlyoutBody: React.FC<
   const [isPushing, setIsPushing] = useState<boolean>(false);
   const [isRunningOnce, setIsRunningOnce] = useState<boolean>(false);
   const [runningOnceStarted, setRunningOnceStarted] = useState<boolean>(false);
+  const [isShowingScreenshots, setIsShowingScreenshots] =
+    useState<boolean>(false);
+  const [monitorUuid, setMonitorUuid] = useState<string | null>(null);
   const [locations, setLocations] = useState<Array<ServiceLocation>>([]);
   const [pushInProgress, setPushInProgress] = useState(false);
   const isMounted = useIsMounted();
@@ -126,6 +131,8 @@ export const ServiceExportFlyoutBody: React.FC<
       code
     );
 
+    setMonitorUuid(runOnceUuid);
+
     let runOnceResults = await KibanaClient.fetchRunOnceResults(
       kibanaUrl,
       apiKey,
@@ -145,6 +152,7 @@ export const ServiceExportFlyoutBody: React.FC<
     }
 
     setIsRunningOnce(false);
+    setIsShowingScreenshots(true);
     onSuccess(
       `Monitor "${formState.name}" ran remotely.`,
       "This monitor is ready to be pushed."
@@ -177,12 +185,30 @@ export const ServiceExportFlyoutBody: React.FC<
     ? "Your monitor is running remotely... "
     : "Pushing monitor to the service...";
 
-  const content =
+  let content =
     isPushing || isRunningOnce ? (
       <ExportLoadingPanel message={isRunningOnce ? runningOnceMessage : null} />
     ) : (
       <ServiceExportForm locations={locations} onFormChange={onFormChange} />
     );
+
+  if (isShowingScreenshots && monitorUuid) {
+    content = <ScreenshotGallery monitorId={monitorUuid} />;
+  }
+
+  const leftButton = isShowingScreenshots ? (
+    <EuiButton
+      fill
+      color="ghost"
+      iconType="cross"
+      onClick={() => setIsShowingScreenshots(false)}
+      disabled={pushInProgress}
+    >
+      Back to form
+    </EuiButton>
+  ) : (
+    <RunOnceButton disabled={pushInProgress} onClick={runOnce} />
+  );
 
   return (
     <>
@@ -193,9 +219,7 @@ export const ServiceExportFlyoutBody: React.FC<
 
       <EuiFlyoutFooter>
         <EuiFlexGroup justifyContent="spaceBetween">
-          <EuiFlexItem grow={false}>
-            <RunOnceButton disabled={pushInProgress} onClick={runOnce} />
-          </EuiFlexItem>
+          <EuiFlexItem grow={false}>{leftButton}</EuiFlexItem>
           <EuiFlexItem grow={false}>
             <PushScriptButton
               disabled={pushInProgress}

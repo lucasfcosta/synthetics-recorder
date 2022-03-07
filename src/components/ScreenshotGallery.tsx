@@ -22,46 +22,37 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-import React from "react";
 import {
   EuiFlexGroup,
   EuiFlexItem,
   EuiImage,
-  EuiLoadingSpinner,
   EuiPanel,
   EuiTitle,
   EuiText,
+  EuiSpacer,
 } from "@elastic/eui";
 import moment from "moment";
-import { useScreenshots } from "../../hooks/useScreenshots";
+import { useScreenshots } from "../hooks/useScreenshots";
 
-interface Props {
+import React from "react";
+
+type ScreenshotGalleryProps = {
   monitorId: string;
-  monitorName: string;
-}
+};
 
-export function StatusPopover({ monitorId, monitorName }: Props) {
-  const { imageData, duration, timestamp, loading } = useScreenshots(monitorId);
+export const ScreenshotGallery: React.FC<ScreenshotGalleryProps> = ({
+  monitorId,
+}) => {
+  const { imageData, duration, steps, timestamp } = useScreenshots(monitorId);
 
-  if (loading)
-    return (
-      <EuiFlexGroup>
-        <EuiFlexItem grow={false}>
-          <EuiLoadingSpinner size="m" />
-        </EuiFlexItem>
-        <EuiFlexItem>Fetching the goodness 🚚</EuiFlexItem>
-      </EuiFlexGroup>
-    );
-
+  console.log(imageData, steps);
   return imageData.length ? (
-    <EuiPanel
-      hasBorder={false}
-      grow={false}
-      style={{ height: "300px", overflow: "scroll" }}
-    >
-      <EuiTitle size="s">
-        <h5>{monitorName}</h5>
+    <>
+      <EuiSpacer />
+      <EuiTitle size="l">
+        <h1>Test Run Results</h1>
       </EuiTitle>
+      <EuiSpacer />
       <EuiFlexGroup alignItems="center">
         <EuiFlexItem grow={false}>
           <EuiText>
@@ -72,15 +63,21 @@ export function StatusPopover({ monitorId, monitorName }: Props) {
           Ran: {moment(timestamp).format("MMMM Do YYYY, h:mm:ss a")}
         </EuiFlexItem>
       </EuiFlexGroup>
+      <EuiSpacer size="xl" />
       <EuiFlexGroup direction="column">
         {imageData.map((img, ind) => (
           <EuiFlexItem grow={false} key={ind}>
-            <EuiImage alt="Screenshot for monitor" url={img} size="l" />
+            <h2>
+              {ind}. {steps[ind]}
+            </h2>
+            <EuiSpacer />
+            <EuiImage alt="Screenshot for monitor" url={img} size="xl" />
+            <EuiSpacer size="l" />
           </EuiFlexItem>
         ))}
       </EuiFlexGroup>
-    </EuiPanel>
+    </>
   ) : (
     <div>No image data</div>
   );
-}
+};
