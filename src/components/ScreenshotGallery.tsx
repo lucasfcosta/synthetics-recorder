@@ -68,7 +68,7 @@ export const ScreenshotGallery: React.FC<ScreenshotGalleryProps> = ({
         {imageData.map((img, ind) => (
           <EuiFlexItem grow={false} key={ind}>
             <h2>
-              {ind}. {steps[ind]}
+              {ind + 1}. {steps[ind]}
             </h2>
             <EuiSpacer />
             <EuiImage alt="Screenshot for monitor" url={img} size="xl" />
